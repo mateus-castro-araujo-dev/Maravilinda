@@ -9,7 +9,7 @@
   </div>
   <div class="admin-table-wrap"><table class="admin-table">
     <thead>
-      <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Tipo</th><th>Cadastro</th><th>Pedidos</th></tr>
+      <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Tipo</th><th>Cadastro</th><th>Pedidos</th><th>Ação</th></tr>
     </thead>
     <tbody>
       {% for u in users %}
@@ -24,6 +24,14 @@
         </td>
         <td style="color:#6B7280;font-size:13px">{{ u.created_at|date:"d/m/Y" }}</td>
         <td><span class="badge badge-gray">{{ u.orders.count }}</span></td>
+        <td>
+          {% if not u.is_admin %}
+          <form method="POST" action="{% url 'admin_usuario_delete' u.id %}" onsubmit="return confirm('Excluir cliente {{ u.name }}? Esta ação não pode ser desfeita.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA"><i class="ph-light ph-trash"></i></button>
+          </form>
+          {% else %}—{% endif %}
+        </td>
       </tr>
       {% empty %}
       <tr><td colspan="6" style="text-align:center;color:#6B7280;padding:40px">Nenhum cliente ainda</td></tr>

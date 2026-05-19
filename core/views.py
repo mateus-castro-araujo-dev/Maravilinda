@@ -928,6 +928,17 @@ def admin_usuarios_view(request):
     return render(request, 'admin/usuarios.html', {'users': users})
 
 
+@login_required
+@admin_required
+def admin_usuario_delete_view(request, uid):
+    if request.method == 'POST':
+        user = get_object_or_404(User, pk=uid)
+        if not user.is_admin:
+            user.delete()
+            messages.success(request, 'Cliente excluído com sucesso.')
+    return redirect('admin_usuarios')
+
+
 # ── Error handlers ─────────────────────────────────────────────────────────────
 
 def handler403(request, exception=None):

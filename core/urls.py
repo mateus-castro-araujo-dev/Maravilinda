@@ -67,4 +67,5 @@ urlpatterns = [
     path('admin/categorias/', views.admin_categorias_view, name='admin_categorias'),
     path('admin/categoria/<int:cid>/deletar/', views.admin_categoria_delete_view, name='admin_categoria_delete'),
     path('admin/usuarios/', views.admin_usuarios_view, name='admin_usuarios'),
+    path('admin/usuario/<int:uid>/deletar/', views.admin_usuario_delete_view, name='admin_usuario_delete'),
 ]
