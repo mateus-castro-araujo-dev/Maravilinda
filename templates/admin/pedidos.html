@@ -7,7 +7,7 @@
 <div class="admin-card">
   <div class="admin-card-header">
     <h3>{{ orders|length }} pedido(s)</h3>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a href="{% url 'admin_pedidos' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline{% endif %}">Todos</a>
       <a href="{% url 'admin_pedidos' %}?status=aguardando" class="btn btn-sm {% if current_status == 'aguardando' %}btn-primary{% else %}btn-outline{% endif %}">Aguardando</a>
       <a href="{% url 'admin_pedidos' %}?status=pago" class="btn btn-sm {% if current_status == 'pago' %}btn-primary{% else %}btn-outline{% endif %}">Pagos</a>

@@ -3,10 +3,10 @@
 {% block page_title %}Categorias{% endblock %}
 
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
+<div class="admin-grid-2col" style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
   <div class="admin-card">
     <div class="admin-card-header"><h3>{{ categories|length }} categoria(s)</h3></div>
-    <table class="admin-table">
+    <div class="admin-table-wrap"><table class="admin-table">
       <thead>
         <tr><th>Nome</th><th>Slug</th><th>Produtos</th><th>Ação</th></tr>
       </thead>
@@ -27,7 +27,7 @@
         <tr><td colspan="4" style="text-align:center;color:#6B7280;padding:32px">Nenhuma categoria cadastrada</td></tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   <div class="admin-form">

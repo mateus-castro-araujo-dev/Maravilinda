@@ -4,11 +4,11 @@
 {% block page_title %}Pedido {{ order.order_number }}{% endblock %}
 
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+<div class="admin-grid-2col" style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
   <div>
     <div class="admin-card" style="margin-bottom:20px">
       <div class="admin-card-header"><h3>Itens do Pedido</h3></div>
-      <table class="admin-table">
+      <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Produto</th><th>Cor</th><th>Tamanho</th><th>Qtd</th><th>Preço Unit.</th><th>Total</th></tr></thead>
         <tbody>
           {% for item in order.items.all %}
@@ -22,7 +22,7 @@
           </tr>
           {% endfor %}
         </tbody>
-      </table>
+      </table></div>
     </div>
 
     <div class="admin-card">
