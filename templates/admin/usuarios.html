@@ -7,7 +7,7 @@
   <div class="admin-card-header">
     <h3>{{ users|length }} cliente(s) cadastrado(s)</h3>
   </div>
-  <table class="admin-table">
+  <div class="admin-table-wrap"><table class="admin-table">
     <thead>
       <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Tipo</th><th>Cadastro</th><th>Pedidos</th></tr>
     </thead>
@@ -29,6 +29,6 @@
       <tr><td colspan="6" style="text-align:center;color:#6B7280;padding:40px">Nenhum cliente ainda</td></tr>
       {% endfor %}
     </tbody>
-  </table>
+  </table></div>
 </div>
 {% endblock %}
