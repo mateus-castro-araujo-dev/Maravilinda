@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}{% if current_cat %}{{ current_cat.name }}{% elif search %}Busca: {{ search }}{% else %}Todos os Produtos{% endif %} — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Início</a>
+    <span class="sep">/</span>
+    {% if current_cat %}<span>{{ current_cat.name }}</span>
+    {% elif search %}<span>Busca: "{{ search }}"</span>
+    {% else %}<span>Produtos</span>{% endif %}
+  </div>
+</div>
+
+<div class="category-strip" style="padding:20px 0">
+  <div class="category-scroll">
+    <a href="{% url 'produtos' %}" class="cat-pill {% if not current_cat and not search %}active{% endif %}">Todos</a>
+    {% for cat in all_categories %}
+    <a href="{% url 'produtos' %}?categoria={{ cat.slug }}"
+       class="cat-pill {% if current_cat and current_cat.slug == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="container section">
+  <div class="section-header">
+    <p class="section-sub">{{ products.paginator.count }} produto{{ products.paginator.count|pluralize }}</p>
+    <h2 class="section-title">
+      {% if current_cat %}{{ current_cat.name }}
+      {% elif search %}"{{ search }}"
+      {% else %}Todos os Produtos{% endif %}
+    </h2>
+    <div class="section-divider"></div>
+  </div>
+
+  {% if products.object_list %}
+  <div class="product-grid">
+    {% for p in products.object_list %}
+    <a href="{% url 'produto' p.id %}" class="product-card">
+      <div class="product-card-image">
+        <img src="{{ p.first_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='/static/img/placeholder.svg'">
+        {% if p.images_list|length > 1 %}<img class="img-hover" src="{{ p.images_list.1 }}" alt="{{ p.name }}" loading="lazy">{% endif %}
+        {% if p.is_featured %}<span class="product-card-badge">Destaque</span>{% endif %}
+        {% if p.stock <= 3 and p.stock > 0 %}<span class="product-card-badge" style="top:auto;bottom:0;background:var(--rosa-deep);color:white">Últimas peças</span>{% endif %}
+        <button class="product-card-wishlist" data-pid="{{ p.id }}" onclick="toggleWishlist(this, {{ p.id }}, event); return false;"><i class="ph-light ph-heart"></i></button>
+        <div class="product-card-actions">
+          <span class="btn btn-primary">Ver produto</span>
+        </div>
+      </div>
+      <div class="product-card-info">
+        <div class="product-card-name">{{ p.name }}</div>
+        <div class="product-card-price">{{ p.fmt_price }}</div>
+        {% if p.colors_list %}
+        <div class="product-card-colors">
+          {% for color in p.colors_list|slice:":5" %}
+          <div class="color-dot" style="background:{{ color|cor_hex }}" title="{{ color }}"></div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if products.paginator.num_pages > 1 %}
+  <div class="pagination">
+    {% if products.has_previous %}
+    <a href="{% url 'produtos' %}?page={{ products.previous_page_number }}{% if cat_slug %}&categoria={{ cat_slug }}{% endif %}{% if search %}&q={{ search }}{% endif %}" class="page-btn"><i class="ph ph-caret-left"></i></a>
+    {% endif %}
+    {% for page_num in products.paginator.page_range %}
+      <a href="{% url 'produtos' %}?page={{ page_num }}{% if cat_slug %}&categoria={{ cat_slug }}{% endif %}{% if search %}&q={{ search }}{% endif %}"
+         class="page-btn {% if page_num == products.number %}active{% endif %}">{{ page_num }}</a>
+    {% endfor %}
+    {% if products.has_next %}
+    <a href="{% url 'produtos' %}?page={{ products.next_page_number }}{% if cat_slug %}&categoria={{ cat_slug }}{% endif %}{% if search %}&q={{ search }}{% endif %}" class="page-btn"><i class="ph ph-caret-right"></i></a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="text-align:center;padding:80px 20px;color:var(--texto-suave)">
+    <i class="ph-light ph-magnifying-glass" style="font-size:64px;color:var(--rosa-medio);margin-bottom:20px;display:block"></i>
+    <h3 style="font-size:1.3rem;margin-bottom:12px;letter-spacing:0.08em;text-transform:uppercase">Nenhum produto encontrado</h3>
+    <p style="margin-bottom:28px;font-size:13px">Tente outra categoria ou busca</p>
+    <a href="{% url 'produtos' %}" class="btn btn-primary">Ver todos os produtos</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

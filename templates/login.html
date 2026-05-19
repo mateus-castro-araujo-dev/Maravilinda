@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Entrar — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <a href="{% url 'index' %}" class="logo">Maravilinda</a>
+      <p>Faça login para continuar</p>
+    </div>
+
+    <form method="POST" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="form-grid" style="margin-bottom:24px">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" name="email" placeholder="seu@email.com" required autofocus>
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" name="password" placeholder="••••••••" required minlength="8">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;letter-spacing:0.08em;text-transform:uppercase">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;color:var(--texto)">
+            <input type="checkbox" name="remember"> Lembrar de mim
+          </label>
+          <a href="{% url 'password_reset' %}" style="color:var(--rosa-deep)">Esqueci a senha</a>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg">Entrar <i class="ph ph-arrow-right"></i></button>
+    </form>
+
+    <div class="auth-footer">
+      Não tem conta? <a href="{% url 'cadastro' %}">Cadastre-se</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

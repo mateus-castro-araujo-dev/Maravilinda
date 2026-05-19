@@ -1,0 +1,145 @@
+{% extends 'admin/base.html' %}
+{% block scripts %}<script>document.addEventListener('DOMContentLoaded', initProductForm);</script>{% endblock %}
+{% block title %}{% if product %}Editar{% else %}Novo{% endif %} Produto{% endblock %}
+{% block page_title %}{% if product %}Editar Produto{% else %}Novo Produto{% endif %}{% endblock %}
+
+{% block content %}
+<form id="produto-admin-form" method="POST" enctype="multipart/form-data"
+      action="{% if product %}{% url 'admin_produto_form_edit' product.id %}{% else %}{% url 'admin_produto_form' %}{% endif %}">
+  {% csrf_token %}
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+    <!-- Coluna Principal -->
+    <div>
+      <div class="admin-form" style="margin-bottom:24px">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #E5E7EB">Informações Básicas</h3>
+        <div class="admin-form-grid">
+          <div class="admin-form-group">
+            <label>Nome do Produto *</label>
+            <input type="text" name="name" value="{{ product.name|default:'' }}" placeholder="Ex: Blusa Nina" required>
+          </div>
+          <div class="admin-form-group">
+            <label>Descrição</label>
+            <textarea name="description" placeholder="Descreva o produto, material, caimento...">{{ product.description|default:'' }}</textarea>
+          </div>
+          <div class="admin-form-grid admin-form-grid-2">
+            <div class="admin-form-group">
+              <label>Preço (R$) *</label>
+              <input type="number" name="price" step="0.01" min="0" value="{% if product %}{{ product.price|stringformat:'g' }}{% endif %}" placeholder="0,00" required>
+            </div>
+            <div class="admin-form-group">
+              <label>Peso (gramas) *</label>
+              <input type="number" name="weight_grams" min="100" value="{% if product %}{{ product.weight_grams }}{% else %}300{% endif %}" placeholder="300">
+              <small style="color:#6B7280;font-size:11px">Usado para calcular o frete</small>
+            </div>
+          </div>
+          <div class="admin-form-grid admin-form-grid-3">
+            <div class="admin-form-group">
+              <label>Comprimento (cm)</label>
+              <input type="number" name="length_cm" min="1" value="{% if product %}{{ product.length_cm }}{% else %}28{% endif %}" placeholder="28">
+            </div>
+            <div class="admin-form-group">
+              <label>Largura (cm)</label>
+              <input type="number" name="width_cm" min="1" value="{% if product %}{{ product.width_cm }}{% else %}19{% endif %}" placeholder="19">
+            </div>
+            <div class="admin-form-group">
+              <label>Altura (cm)</label>
+              <input type="number" name="height_cm" min="1" value="{% if product %}{{ product.height_cm }}{% else %}5{% endif %}" placeholder="5">
+            </div>
+          </div>
+          <div class="admin-form-grid admin-form-grid-2">
+            <div class="admin-form-group">
+              <label>Estoque</label>
+              <input type="number" name="stock" min="0" value="{% if product %}{{ product.stock }}{% else %}0{% endif %}">
+            </div>
+            <div class="admin-form-group">
+              <label>Categoria</label>
+              <select name="category_id">
+                <option value="">Sem categoria</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if product and product.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="admin-form-group">
+            <label>Cores (separadas por vírgula)</label>
+            <input type="text" id="colors-input" name="colors"
+              value="{% if product %}{{ product.colors_list|join:', ' }}{% endif %}"
+              placeholder="rosa, preto, branco, azul escuro, vermelho">
+            <small style="color:#6B7280;font-size:11px">
+              Digite os nomes em português separados por vírgula. Ex: rosa, preto, nude, vinho, azul
+            </small>
+            <div id="colors-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
+          </div>
+          <div class="admin-form-group">
+            <label>Tamanhos (separados por vírgula)</label>
+            <input type="text" name="sizes" value="{% if product %}{{ product.sizes_list|join:', ' }}{% else %}P, M, G, GG{% endif %}" placeholder="P, M, G, GG">
+          </div>
+        </div>
+      </div>
+
+      <!-- Imagens -->
+      <div class="admin-form">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:6px;padding-bottom:12px;border-bottom:1px solid #E5E7EB">Imagens do Produto</h3>
+        <p style="font-size:12px;color:#6B7280;margin-bottom:16px">Adicione quantas imagens quiser. Clique em <strong>+ Adicionar Imagens</strong> várias vezes para acumular fotos.</p>
+
+        {% if product and product.images_list %}
+        <div style="margin-bottom:16px">
+          <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280;margin-bottom:10px">Imagens salvas</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px" id="saved-imgs">
+            {% for img in product.images_list %}
+            <div style="position:relative" data-saved-img="{{ img }}">
+              <img src="{{ img }}" style="width:90px;height:110px;object-fit:cover;border:1px solid #E5E7EB;display:block">
+              <button type="button" onclick="removeSavedImg(this)"
+                style="position:absolute;top:4px;right:4px;width:22px;height:22px;background:#DC2626;color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:0">
+                <i class="ph-fill ph-x"></i>
+              </button>
+              <input type="hidden" name="existing_images" value="{{ img }}">
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div id="new-imgs-preview" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px"></div>
+        <div id="file-inputs-container"></div>
+
+        <button type="button" onclick="document.getElementById('img-upload-trigger').click()"
+          class="btn btn-outline btn-sm" style="margin-bottom:4px">
+          <i class="ph-light ph-plus"></i> Adicionar Imagens
+        </button>
+        <input type="file" id="img-upload-trigger" name="images" multiple accept="image/jpeg,image/png,image/webp"
+          style="display:none" onchange="acumularImagens(this)">
+        <p style="font-size:11px;color:#9CA3AF;margin-top:6px">JPG, PNG ou WEBP — sem limite de quantidade</p>
+      </div>
+    </div>
+
+    <!-- Coluna Lateral -->
+    <div>
+      <div class="admin-form" style="margin-bottom:16px">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Configurações</h3>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="toggle-switch">
+            <input type="checkbox" id="is_active" name="is_active" {% if not product or product.is_active %}checked{% endif %}>
+            <label class="toggle" for="is_active"></label>
+            <span style="font-size:14px">Produto Ativo</span>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="is_featured" name="is_featured" {% if product and product.is_featured %}checked{% endif %}>
+            <label class="toggle" for="is_featured"></label>
+            <span style="font-size:14px">Produto em Destaque <i class="ph-fill ph-star" style="color:#C4637A;font-size:14px"></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-form">
+        <button type="submit" class="btn btn-primary btn-full btn-lg">
+          {% if product %}<i class="ph-light ph-floppy-disk"></i> Salvar Alterações{% else %}<i class="ph-light ph-check"></i> Criar Produto{% endif %}
+        </button>
+        <a href="{% url 'admin_produtos' %}" class="btn btn-ghost btn-full" style="margin-top:8px">Cancelar</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

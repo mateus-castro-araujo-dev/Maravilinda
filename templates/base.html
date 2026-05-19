@@ -1,0 +1,214 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}Maravilinda — Moda Feminina{% endblock %}</title>
+  <meta name="description" content="{% block description %}Maravilinda — Roupas femininas modernas com estilo e elegância.{% endblock %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  {% block head %}{% endblock %}
+</head>
+<body data-logged-in="{{ user.is_authenticated|yesno:'true,false' }}">
+
+<!-- ── Splash Screen ──────────────────────────────────────────────────────── -->
+<div class="splash-screen" id="splash-screen">
+  <div class="splash-mono">
+    <img class="splash-logo" src="{% static 'img/logo-white.png' %}" alt="Maravilinda">
+  </div>
+</div>
+
+<!-- ── Flash ───────────────────────────────────────────────────────────────── -->
+<div class="flash-container" id="flash-container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="flash flash-{{ message.tags }}">
+        <i class="ph-light {% if message.tags == 'success' %}ph-check-circle{% elif message.tags == 'error' %}ph-warning-circle{% else %}ph-info{% endif %}"></i>
+        <span>{{ message }}</span>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- ── Drawer Mobile ──────────────────────────────────────────────────────── -->
+<div class="nav-drawer" id="nav-drawer">
+  <div class="drawer-header">
+    <span class="drawer-logo">Maravilinda</span>
+    <button class="drawer-close" onclick="toggleMenu()" aria-label="Fechar">
+      <i class="ph ph-x"></i>
+    </button>
+  </div>
+  <div class="drawer-nav">
+    <a href="{% url 'index' %}"><i class="ph-light ph-house"></i> Início</a>
+    <a href="{% url 'produtos' %}"><i class="ph-light ph-storefront"></i> Produtos</a>
+    <a href="{% url 'produtos' %}?categoria=sale"><i class="ph-light ph-tag"></i> Sale</a>
+    <div class="drawer-section-title">Categorias</div>
+    {% for cat in all_categories %}
+    <a href="{% url 'produtos' %}?categoria={{ cat.slug }}">{{ cat.name }}</a>
+    {% endfor %}
+    <div class="drawer-section-title">Conta</div>
+    {% if user.is_authenticated %}
+    <a href="{% url 'minha_conta' %}"><i class="ph-light ph-user"></i> Minha Conta</a>
+    {% if user.is_admin %}
+    <a href="{% url 'admin_dashboard' %}"><i class="ph-light ph-gear"></i> Admin</a>
+    {% endif %}
+    <a href="{% url 'logout' %}"><i class="ph-light ph-sign-out"></i> Sair</a>
+    {% else %}
+    <a href="{% url 'login' %}"><i class="ph-light ph-sign-in"></i> Entrar</a>
+    <a href="{% url 'cadastro' %}"><i class="ph-light ph-user-plus"></i> Cadastrar</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="header" id="header">
+  <div class="header-top">
+    <div class="header-icons-left">
+      <button class="btn-menu btn-icon" onclick="toggleMenu()" aria-label="Menu">
+        <i class="ph ph-list"></i>
+      </button>
+      <button class="btn-icon" onclick="toggleSearch()" aria-label="Buscar" title="Buscar">
+        <i class="ph-light ph-magnifying-glass"></i>
+      </button>
+    </div>
+
+    <a href="{% url 'index' %}" class="logo">Maravilinda</a>
+
+    <div class="header-icons-right">
+      {% if user.is_authenticated %}
+      <a href="{% url 'minha_conta' %}" class="btn-icon" title="Minha Conta">
+        <i class="ph-light ph-user"></i>
+      </a>
+      {% else %}
+      <a href="{% url 'login' %}" class="btn-icon" title="Entrar">
+        <i class="ph-light ph-user"></i>
+      </a>
+      {% endif %}
+      <button class="btn-icon" onclick="openCart()" aria-label="Carrinho" title="Carrinho">
+        <i class="ph-light ph-shopping-bag-open"></i>
+        <span class="cart-badge cart-count" style="display:{% if cart_count > 0 %}flex{% else %}none{% endif %}">{{ cart_count }}</span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="header-nav">
+    <a href="{% url 'index' %}" {% if request.resolver_match.url_name == 'index' %}class="active"{% endif %}>Início</a>
+    <a href="{% url 'produtos' %}?categoria=sale" {% if request.resolver_match.url_name == 'produtos' and request.GET.categoria == 'sale' %}class="active"{% endif %}>Sale</a>
+    <a href="{% url 'produtos' %}" {% if request.resolver_match.url_name == 'produtos' and not request.GET.categoria %}class="active"{% endif %}>Produtos</a>
+    <a href="#" onclick="event.preventDefault();window.open('https://wa.me/{{ whatsapp_number }}','_blank')">Contato</a>
+  </nav>
+
+  <div class="search-bar" id="search-bar">
+    <form id="search-form" style="display:flex;gap:8px;flex:1">
+      <input type="text" id="search-input" placeholder="O que você procura?" autocomplete="off">
+      <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+    </form>
+    <button onclick="toggleSearch()" class="btn-icon"><i class="ph ph-x"></i></button>
+  </div>
+</header>
+
+<!-- ── Cart Sidebar ────────────────────────────────────────────────────────── -->
+<aside class="cart-sidebar" id="cart-sidebar">
+  <div class="cart-header">
+    <h3>Meu Carrinho</h3>
+    <button class="btn-icon" onclick="closeCart()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="cart-items" id="cart-items-list">
+    <div class="cart-empty">
+      <i class="ph-light ph-shopping-bag"></i>
+      <p>Carrinho vazio</p>
+      <a href="{% url 'produtos' %}" class="btn btn-primary btn-sm">Explorar Produtos</a>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total-row">
+      <span class="label">Subtotal</span>
+      <span class="value" id="cart-total">R$ 0,00</span>
+    </div>
+    <a href="{% url 'checkout' %}" class="btn btn-primary btn-full btn-lg" id="cart-checkout-btn" style="display:none">
+      Finalizar Compra <i class="ph ph-arrow-right"></i>
+    </a>
+    <a href="{% url 'carrinho' %}" class="btn btn-ghost btn-full btn-sm" style="margin-top:6px">Ver carrinho completo</a>
+  </div>
+</aside>
+
+{% block content %}{% endblock %}
+
+<!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="logo">Maravilinda</div>
+        <p>Moda feminina com elegância e estilo para todas as ocasiões. Peças únicas que expressam sua personalidade.</p>
+        <div class="footer-social">
+          <a href="https://instagram.com/{{ instagram_user }}" class="social-btn" title="Instagram" target="_blank" rel="noopener"><i class="ph-light ph-instagram-logo"></i></a>
+          <a href="https://facebook.com/{{ facebook_user }}" class="social-btn" title="Facebook" target="_blank" rel="noopener"><i class="ph-light ph-facebook-logo"></i></a>
+          <a href="https://wa.me/{{ whatsapp_number }}" class="social-btn" title="WhatsApp" target="_blank" rel="noopener"><i class="ph-light ph-whatsapp-logo"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Produtos</h4>
+        {% for cat in all_categories|slice:":6" %}
+        <a href="{% url 'produtos' %}?categoria={{ cat.slug }}">{{ cat.name }}</a>
+        {% endfor %}
+      </div>
+      <div class="footer-col">
+        <h4>Informações</h4>
+        <a href="#">Sobre nós</a>
+        <a href="#">Trocas e Devoluções</a>
+        <a href="#">Política de Privacidade</a>
+        <a href="#">Termos de Uso</a>
+        <a href="#">Entrega e Frete</a>
+      </div>
+      <div class="footer-col">
+        <h4>Atendimento</h4>
+        <a href="https://wa.me/{{ whatsapp_number }}">WhatsApp</a>
+        <a href="#">E-mail</a>
+        <a href="#">Nossa loja</a>
+        <p style="margin-top:14px;font-size:11px;color:rgba(255,255,255,0.3);line-height:1.8;letter-spacing:0.06em">
+          Seg – Sex · 9h às 18h<br>Sáb · 9h às 14h
+        </p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Maravilinda · Todos os direitos reservados</span>
+      <div class="footer-payments">
+        <div class="payment-icon-sm">PIX</div>
+        <div class="payment-icon-sm">VISA</div>
+        <div class="payment-icon-sm">MC</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ── WhatsApp ────────────────────────────────────────────────────────────── -->
+<a href="https://wa.me/{{ whatsapp_number }}?text=Ol%C3%A1!%20Vim%20pela%20Maravilinda%20e%20preciso%20de%20ajuda."
+   class="whatsapp-btn" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp">
+  <i class="ph-fill ph-whatsapp-logo"></i>
+</a>
+
+<script src="{% static 'js/main.js' %}"></script>
+{% block scripts %}{% endblock %}
+<script>
+(function () {
+  var splash = document.getElementById('splash-screen');
+  if (!splash) return;
+  if (sessionStorage.getItem('mlv_splash')) { splash.remove(); return; }
+  sessionStorage.setItem('mlv_splash', '1');
+  setTimeout(function () {
+    splash.classList.add('hiding');
+    setTimeout(function () { splash.remove(); }, 950);
+  }, 2100);
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

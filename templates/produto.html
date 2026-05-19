@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}{{ product.name }} — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Início</a>
+    <span class="sep">/</span>
+    {% if product.category %}
+    <a href="{% url 'produtos' %}?categoria={{ product.category.slug }}">{{ product.category.name }}</a>
+    <span class="sep">/</span>
+    {% endif %}
+    <span>{{ product.name }}</span>
+  </div>
+
+  <div class="produto-layout">
+    <div class="gallery">
+      <div class="gallery-main" id="zoom-container">
+        <img id="gallery-main-img" src="{{ product.first_image }}" alt="{{ product.name }}"
+             onerror="this.src='/static/img/placeholder.svg'">
+        <span class="zoom-hint"><i class="ph-light ph-magnifying-glass-plus"></i></span>
+      </div>
+      {% if product.images_list|length > 1 %}
+      <div class="gallery-thumbs">
+        {% for img in product.images_list %}
+        <div class="gallery-thumb {% if forloop.first %}active{% endif %}" data-src="{{ img }}">
+          <img src="{{ img }}" alt="{{ forloop.counter }}" loading="lazy">
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="produto-info">
+      {% if product.category %}<div class="produto-category">{{ product.category.name }}</div>{% endif %}
+      <h1 class="produto-title">{{ product.name }}</h1>
+      <div class="produto-price">{{ product.fmt_price }}</div>
+      <div class="produto-price-installment">ou 2x de R$ {{ product.price|div:2|brl }} sem juros</div>
+
+      <hr class="produto-divider">
+
+      {% if product.sizes_list %}
+      <div class="option-label">Tamanho</div>
+      <div class="size-options">
+        {% for size in product.sizes_list %}
+        <button class="size-btn {% if forloop.first %}selected{% endif %}" data-size="{{ size }}" onclick="selectSize(this)">{{ size }}</button>
+        {% endfor %}
+      </div>
+      <input type="hidden" id="selected-size" value="{{ product.sizes_list.0 }}">
+      {% endif %}
+
+      {% if product.colors_list %}
+      <div class="option-label">Cor</div>
+      <div class="color-options">
+        {% for color in product.colors_list %}
+        <button class="color-btn {% if forloop.first %}selected{% endif %}" data-color="{{ color }}" style="background:{{ color|cor_hex }}" onclick="selectColor(this)" title="{{ color }}"></button>
+        {% endfor %}
+      </div>
+      <input type="hidden" id="selected-color" value="{{ product.colors_list.0 }}">
+      {% endif %}
+
+      <div class="option-label">Quantidade</div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="changeQty(-1)"><i class="ph ph-minus"></i></button>
+        <input type="number" id="qty-input" class="qty-input" value="1" min="1" max="99">
+        <button class="qty-btn" onclick="changeQty(1)"><i class="ph ph-plus"></i></button>
+      </div>
+
+      <div class="produto-actions">
+        <button class="btn btn-primary btn-lg" id="btn-comprar"
+          onclick="addToCart({{ product.id }}, document.getElementById('selected-color')?.value || '', document.getElementById('selected-size')?.value || '', parseInt(document.getElementById('qty-input').value))">
+          <i class="ph-light ph-shopping-bag"></i> Adicionar ao Carrinho
+        </button>
+        <button class="btn-icon-square product-card-wishlist" data-pid="{{ product.id }}" title="Favoritar" onclick="toggleWishlist(this, {{ product.id }}, event); return false;"><i class="ph-light ph-heart"></i></button>
+      </div>
+
+      {% if product.stock <= 5 and product.stock > 0 %}
+      <p style="color:var(--rosa-deep);font-size:12px;margin-top:14px;font-weight:500;letter-spacing:0.06em">
+        <i class="ph-fill ph-warning"></i> Apenas {{ product.stock }} unidade{{ product.stock|pluralize }} em estoque
+      </p>
+      {% elif product.stock == 0 %}
+      <p style="color:var(--rosa-deep);font-size:12px;margin-top:14px;font-weight:500">Produto fora de estoque</p>
+      {% endif %}
+
+      <hr class="produto-divider">
+
+      <div class="produto-frete-calc">
+        <h4><i class="ph-light ph-truck"></i> Calcular Frete</h4>
+        <div class="frete-input-row">
+          <input type="text" id="frete-cep" placeholder="Digite seu CEP" maxlength="9"
+                 oninput="maskCep(this)" onkeypress="if(event.key==='Enter')calcFrete('frete-cep','frete-result')">
+          <button class="btn btn-primary btn-sm" onclick="calcFrete('frete-cep','frete-result')">Calcular</button>
+        </div>
+        <div class="frete-results" id="frete-result"></div>
+      </div>
+
+      {% if product.description %}
+      <div class="produto-desc">
+        <h4>Descrição</h4>
+        <p>{{ product.description }}</p>
+      </div>
+      {% endif %}
+
+      <div class="produto-info-list">
+        <div><i class="ph-light ph-shield-check"></i> <span>Compra 100% segura e criptografada</span></div>
+        <div><i class="ph-light ph-arrows-counter-clockwise"></i> <span>Troca grátis em até 7 dias</span></div>
+        <div><i class="ph-light ph-whatsapp-logo"></i> <span>Dúvidas? <a href="https://wa.me/{{ whatsapp_number }}" style="color:var(--texto);border-bottom:1px solid var(--texto)">Fale conosco</a></span></div>
+      </div>
+    </div>
+  </div>
+
+  {% if related %}
+  <div class="section">
+    <div class="section-header">
+      <p class="section-sub">Você também pode gostar</p>
+      <h2 class="section-title">Produtos Relacionados</h2>
+      <div class="section-divider"></div>
+    </div>
+    <div class="product-grid">
+      {% for p in related %}
+      <a href="{% url 'produto' p.id %}" class="product-card">
+        <div class="product-card-image">
+          <img src="{{ p.first_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='/static/img/placeholder.svg'">
+          {% if p.images_list|length > 1 %}<img class="img-hover" src="{{ p.images_list.1 }}" alt="{{ p.name }}" loading="lazy">{% endif %}
+          <button class="product-card-wishlist" data-pid="{{ p.id }}" onclick="toggleWishlist(this, {{ p.id }}, event); return false;"><i class="ph-light ph-heart"></i></button>
+        </div>
+        <div class="product-card-info">
+          <div class="product-card-name">{{ p.name }}</div>
+          <div class="product-card-price">{{ p.fmt_price }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()"><i class="ph-light ph-x"></i></button>
+  <img id="lightbox-img" src="" alt="{{ product.name }}" onclick="event.stopPropagation()">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var isMobile = window.matchMedia('(max-width:900px)').matches;
+  var container = document.getElementById('zoom-container');
+  var img       = document.getElementById('gallery-main-img');
+
+  if (isMobile) {
+    // Celular: clique abre lightbox com pinch-to-zoom nativo
+    container.addEventListener('click', function () {
+      document.getElementById('lightbox-img').src = img.src;
+      document.getElementById('lightbox').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+    return;
+  }
+
+  // Desktop: clique ativa/desativa zoom; mouse move atualiza posição
+  var zoomed = false;
+
+  container.addEventListener('click', function () {
+    zoomed = !zoomed;
+    container.classList.toggle('zoomed', zoomed);
+    if (!zoomed) img.style.transformOrigin = '50% 50%';
+  });
+
+  container.addEventListener('mousemove', function (e) {
+    if (!zoomed) return;
+    var rect = container.getBoundingClientRect();
+    var x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(1);
+    var y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1);
+    img.style.transformOrigin = x + '% ' + y + '%';
+  });
+
+  container.addEventListener('mouseleave', function () {
+    if (zoomed) img.style.transformOrigin = '50% 50%';
+  });
+})();
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeLightbox();
+});
+</script>
+{% endblock %}

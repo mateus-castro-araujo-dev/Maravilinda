@@ -1,0 +1,75 @@
+{% extends 'admin/base.html' %}
+{% load core_tags %}
+{% block title %}Pedido {{ order.order_number }}{% endblock %}
+{% block page_title %}Pedido {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+  <div>
+    <div class="admin-card" style="margin-bottom:20px">
+      <div class="admin-card-header"><h3>Itens do Pedido</h3></div>
+      <table class="admin-table">
+        <thead><tr><th>Produto</th><th>Cor</th><th>Tamanho</th><th>Qtd</th><th>Preço Unit.</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for item in order.items.all %}
+          <tr>
+            <td><strong>{{ item.product_name }}</strong></td>
+            <td>{{ item.color|default:"—" }}</td>
+            <td>{{ item.size|default:"—" }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>R$ {{ item.unit_price|brl }}</td>
+            <td><strong>R$ {{ item.subtotal|brl }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-header"><h3>Endereço de Entrega</h3></div>
+      <div style="padding:20px;font-size:14px;line-height:2">
+        <strong>{{ order.street }}, {{ order.number }}</strong>
+        {% if order.complement %} — {{ order.complement }}{% endif %}<br>
+        {{ order.neighborhood }} — {{ order.city }}/{{ order.state }}<br>
+        CEP: {{ order.cep }}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="admin-form" style="margin-bottom:16px">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Resumo Financeiro</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+        <div style="display:flex;justify-content:space-between"><span style="color:#6B7280">Subtotal</span><span>R$ {{ order.subtotal|brl }}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#6B7280">Frete ({{ order.freight_type }})</span><span>R$ {{ order.freight|brl }}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--rosa-escuro);border-top:1px solid #E5E7EB;padding-top:10px;margin-top:4px"><span>Total</span><span>{{ order.fmt_total }}</span></div>
+      </div>
+    </div>
+
+    <div class="admin-form">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Atualizar Status</h3>
+      <form method="POST" action="{% url 'admin_update_order' order.id %}">
+        {% csrf_token %}
+        <div class="admin-form-group" style="margin-bottom:12px">
+          <label>Status do Pedido</label>
+          <select name="status">
+            {% for s in "aguardando,pago,enviado,entregue,cancelado"|split:"," %}
+            <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ s|capfirst }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="admin-form-group" style="margin-bottom:16px">
+          <label>Status do Pagamento</label>
+          <select name="payment_status">
+            {% for s in "pendente,pago,estornado"|split:"," %}
+            <option value="{{ s }}" {% if order.payment_status == s %}selected{% endif %}>{{ s|capfirst }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full"><i class="ph-light ph-floppy-disk"></i> Atualizar</button>
+      </form>
+      <a href="{% url 'admin_pedidos' %}" class="btn btn-ghost btn-full" style="margin-top:8px">← Voltar</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

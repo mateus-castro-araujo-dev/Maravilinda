@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Erro interno — Maravilinda{% endblock %}
+{% block content %}
+<div class="error-page">
+  <div class="error-code">500</div>
+  <h2>Algo deu errado</h2>
+  <p>Ocorreu um erro interno. Já estamos trabalhando para resolver.</p>
+  <a href="{% url 'index' %}" class="btn btn-primary btn-lg">Voltar ao início</a>
+</div>
+{% endblock %}

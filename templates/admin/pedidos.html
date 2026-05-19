@@ -1,0 +1,49 @@
+{% extends 'admin/base.html' %}
+{% load core_tags %}
+{% block title %}Pedidos{% endblock %}
+{% block page_title %}Pedidos{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-header">
+    <h3>{{ orders|length }} pedido(s)</h3>
+    <div style="display:flex;gap:8px">
+      <a href="{% url 'admin_pedidos' %}" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline{% endif %}">Todos</a>
+      <a href="{% url 'admin_pedidos' %}?status=aguardando" class="btn btn-sm {% if current_status == 'aguardando' %}btn-primary{% else %}btn-outline{% endif %}">Aguardando</a>
+      <a href="{% url 'admin_pedidos' %}?status=pago" class="btn btn-sm {% if current_status == 'pago' %}btn-primary{% else %}btn-outline{% endif %}">Pagos</a>
+      <a href="{% url 'admin_pedidos' %}?status=enviado" class="btn btn-sm {% if current_status == 'enviado' %}btn-primary{% else %}btn-outline{% endif %}">Enviados</a>
+    </div>
+  </div>
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Pedido</th><th>Cliente</th><th>Total</th><th>Pagamento</th>
+        <th>Status Pedido</th><th>Data</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td><strong style="color:var(--rosa-escuro)">{{ order.order_number }}</strong></td>
+        <td>
+          <div style="font-size:13px;font-weight:500">{% if order.user %}{{ order.user.name }}{% else %}—{% endif %}</div>
+          <div style="font-size:12px;color:#6B7280">{% if order.user %}{{ order.user.email }}{% endif %}</div>
+        </td>
+        <td><strong>{{ order.fmt_total }}</strong></td>
+        <td><span class="badge badge-gray">{% if order.payment_method == 'pix' %}PIX{% elif order.payment_method == 'credit' %}Crédito{% elif order.payment_method == 'debit' %}Débito{% else %}{{ order.payment_method|default:"—"|upper }}{% endif %}</span></td>
+        <td>
+          <select id="status-{{ order.id }}" onchange="updateOrderStatus({{ order.id }})" style="font-size:12px;padding:4px 8px;border:1px solid #E5E7EB;border-radius:6px;background:white">
+            {% for s in "aguardando,pago,enviado,entregue,cancelado"|split:"," %}
+            <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ s|capfirst }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td style="color:#6B7280;font-size:13px">{{ order.created_at|date:"d/m/Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;color:#6B7280;padding:40px">Nenhum pedido encontrado</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
