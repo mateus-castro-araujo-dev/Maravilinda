@@ -13,10 +13,15 @@
 <body>
 <div class="admin-layout">
 
-  <aside class="admin-sidebar">
+  <aside class="admin-sidebar" id="admin-sidebar">
     <div class="admin-brand">
-      <div>Maravilinda <span>Admin</span></div>
-      <small>Painel de Controle</small>
+      <div>
+        <div>Maravilinda <span>Admin</span></div>
+        <small>Painel de Controle</small>
+      </div>
+      <button class="admin-hamburger" onclick="toggleSidebar()" aria-label="Fechar menu">
+        <i class="ph-light ph-x"></i>
+      </button>
     </div>
     <nav class="admin-nav">
       <div class="admin-nav-section">Principal</div>
@@ -55,7 +60,12 @@
 
   <main class="admin-main">
     <div class="admin-topbar">
-      <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="admin-hamburger" onclick="toggleSidebar()" aria-label="Abrir menu" style="color:#374151">
+          <i class="ph-light ph-list"></i>
+        </button>
+        <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+      </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-size:12px;color:#6B7280;letter-spacing:0.06em">{{ user.name }}</span>
         <div style="width:34px;height:34px;background:var(--rosa-claro);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--rosa-deep)"><i class="ph-light ph-user"></i></div>
@@ -80,5 +90,18 @@
 </div>
 <script src="{% static 'js/main.js' %}"></script>
 {% block scripts %}{% endblock %}
+<script>
+function toggleSidebar() {
+  document.getElementById('admin-sidebar').classList.toggle('sidebar-open');
+}
+// Fecha sidebar ao clicar em link no mobile
+document.querySelectorAll('.admin-nav a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    if (window.innerWidth <= 768) {
+      document.getElementById('admin-sidebar').classList.remove('sidebar-open');
+    }
+  });
+});
+</script>
 </body>
 </html>

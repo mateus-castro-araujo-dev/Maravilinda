@@ -8,7 +8,7 @@
     <h3>{{ products|length }} produto(s) cadastrado(s)</h3>
     <a href="{% url 'admin_produto_form' %}" class="btn btn-primary btn-sm"><i class="ph-light ph-plus"></i> Novo Produto</a>
   </div>
-  <table class="admin-table">
+  <div class="admin-table-wrap"><table class="admin-table">
     <thead>
       <tr>
         <th>Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th>
@@ -63,6 +63,6 @@
       <tr><td colspan="8" style="text-align:center;color:#6B7280;padding:40px">Nenhum produto cadastrado. <a href="{% url 'admin_produto_form' %}" style="color:var(--rosa-escuro)">Adicionar agora →</a></td></tr>
       {% endfor %}
     </tbody>
-  </table>
+  </table></div>
 </div>
 {% endblock %}

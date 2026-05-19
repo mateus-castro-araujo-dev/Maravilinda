@@ -8,7 +8,7 @@
       action="{% if product %}{% url 'admin_produto_form_edit' product.id %}{% else %}{% url 'admin_produto_form' %}{% endif %}">
   {% csrf_token %}
 
-  <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+  <div class="admin-grid-2col" style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
     <!-- Coluna Principal -->
     <div>
       <div class="admin-form" style="margin-bottom:24px">

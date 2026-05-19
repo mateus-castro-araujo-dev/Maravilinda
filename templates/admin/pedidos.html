@@ -14,7 +14,7 @@
       <a href="{% url 'admin_pedidos' %}?status=enviado" class="btn btn-sm {% if current_status == 'enviado' %}btn-primary{% else %}btn-outline{% endif %}">Enviados</a>
     </div>
   </div>
-  <table class="admin-table">
+  <div class="admin-table-wrap"><table class="admin-table">
     <thead>
       <tr>
         <th>Pedido</th><th>Cliente</th><th>Total</th><th>Pagamento</th>
@@ -44,6 +44,6 @@
       <tr><td colspan="8" style="text-align:center;color:#6B7280;padding:40px">Nenhum pedido encontrado</td></tr>
       {% endfor %}
     </tbody>
-  </table>
+  </table></div>
 </div>
 {% endblock %}
