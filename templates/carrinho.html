@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}Meu Carrinho — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Início</a>
+    <span class="sep">/</span>
+    <span>Carrinho</span>
+  </div>
+
+  <div class="section-header" style="margin-bottom:32px">
+    <h2 class="section-title">Meu Carrinho</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  {% if cart %}
+  <div class="carrinho-layout">
+    <div>
+      <div class="carrinho-items">
+        {% for item in cart %}
+        <div class="carrinho-item">
+          <div class="carrinho-item-img">
+            <img src="{{ item.image }}" alt="{{ item.name }}" onerror="this.src='/static/img/placeholder.svg'">
+          </div>
+          <div class="carrinho-item-info">
+            <div class="carrinho-item-name">{{ item.name }}</div>
+            <div class="carrinho-item-var">
+              {% if item.color %}Cor: {{ item.color }}{% endif %}
+              {% if item.color and item.size %} · {% endif %}
+              {% if item.size %}Tamanho: {{ item.size }}{% endif %}
+            </div>
+            <div class="carrinho-item-bottom">
+              <div class="qty-control" style="margin:0">
+                <button class="qty-btn" onclick="updateCartItem('{{ item.key }}', {{ item.qty|add:'-1' }})"><i class="ph ph-minus"></i></button>
+                <span class="qty-input" style="display:flex;align-items:center;justify-content:center;width:48px">{{ item.qty }}</span>
+                <button class="qty-btn" onclick="updateCartItem('{{ item.key }}', {{ item.qty|add:'1' }})"><i class="ph ph-plus"></i></button>
+              </div>
+              <button onclick="removeCartItem('{{ item.key }}')" style="font-size:11px;color:var(--texto-suave);cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;display:flex;align-items:center;gap:6px"><i class="ph-light ph-trash"></i> Remover</button>
+              <div class="carrinho-item-price">R$ {{ item.subtotal|brl }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:20px">
+        <a href="{% url 'produtos' %}" class="btn btn-ghost btn-sm"><i class="ph ph-arrow-left"></i> Continuar comprando</a>
+      </div>
+    </div>
+
+    <div class="carrinho-summary">
+      <h3>Resumo</h3>
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span>R$ {{ total|brl }}</span>
+      </div>
+      <div class="summary-row">
+        <span>Frete</span>
+        <span id="frete-valor-texto" style="color:var(--texto-suave);font-size:11px">Calcule abaixo</span>
+      </div>
+
+      <div class="frete-calc-box">
+        <h4><i class="ph-light ph-truck"></i> Calcular Frete</h4>
+        <div class="frete-input-row">
+          <input type="text" id="frete-cep-cart" placeholder="00000-000" maxlength="9" oninput="maskCep(this)">
+          <button class="btn btn-primary btn-sm" onclick="calcFreteCarrinho()">Calcular</button>
+        </div>
+        <div id="frete-result-cart" class="frete-results" style="margin-top:12px"></div>
+      </div>
+
+      <div class="summary-row total">
+        <span>Total</span>
+        <span id="total-final">R$ {{ total|brl }}</span>
+      </div>
+
+      <a href="{% url 'checkout' %}" class="btn btn-primary btn-full btn-lg" style="margin-top:20px">
+        Finalizar Compra <i class="ph ph-arrow-right"></i>
+      </a>
+      <div style="display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:11px;color:var(--texto-suave);letter-spacing:0.1em;text-transform:uppercase">
+        <span><i class="ph-light ph-shield-check"></i> Pagamento seguro</span>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div style="text-align:center;padding:100px 20px">
+    <i class="ph-light ph-shopping-bag" style="font-size:80px;color:var(--rosa-medio);margin-bottom:24px;display:block"></i>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin-bottom:14px;letter-spacing:0.08em;text-transform:uppercase">Carrinho Vazio</h2>
+    <p style="color:var(--texto-suave);margin-bottom:36px;font-size:13px">Explore nossos produtos e encontre algo que você vai amar.</p>
+    <a href="{% url 'produtos' %}" class="btn btn-primary btn-lg">Explorar Produtos <i class="ph ph-arrow-right"></i></a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const subtotalBase = {{ total }};
+async function calcFreteCarrinho() {
+  const cep = document.getElementById('frete-cep-cart')?.value.replace(/\D/g,'');
+  if (cep?.length !== 8) { showFlash('CEP inválido','error'); return; }
+  const res = await apiPost('/api/frete/', { cep });
+  if (!res.pac) { showFlash('Não foi possível calcular o frete.','error'); return; }
+  document.getElementById('frete-result-cart').innerHTML = `
+    <label class="frete-option" style="cursor:pointer" onclick="aplicarFrete(${res.pac.price},'PAC')">
+      <div><strong>PAC</strong> — ${res.pac.days}</div>
+      <strong>R$ ${res.pac.price.toFixed(2).replace('.',',')}</strong>
+    </label>
+    <label class="frete-option" style="cursor:pointer;margin-top:6px" onclick="aplicarFrete(${res.sedex.price},'SEDEX')">
+      <div><strong>SEDEX</strong> — ${res.sedex.days}</div>
+      <strong>R$ ${res.sedex.price.toFixed(2).replace('.',',')}</strong>
+    </label>`;
+}
+function aplicarFrete(price, tipo) {
+  const total = subtotalBase + price;
+  document.getElementById('frete-valor-texto').textContent = `${tipo} — R$ ${price.toFixed(2).replace('.',',')}`;
+  document.getElementById('frete-valor-texto').style.color = 'var(--texto)';
+  document.getElementById('frete-valor-texto').style.fontSize = '13px';
+  document.getElementById('total-final').textContent = `R$ ${total.toFixed(2).replace('.',',')}`;
+}
+const origRefresh = refreshCart;
+refreshCart = async function() { await origRefresh(); const d = await fetch('/api/cart/').then(r=>r.json()); if (d.count===0) location.reload(); };
+</script>
+{% endblock %}

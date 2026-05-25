@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}Finalizar Compra — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Início</a>
+    <span class="sep">/</span>
+    <a href="{% url 'carrinho' %}">Carrinho</a>
+    <span class="sep">/</span>
+    <span>Finalizar</span>
+  </div>
+
+  <div class="section-header" style="margin-bottom:32px">
+    <h2 class="section-title">Finalizar Compra</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <form method="POST" action="{% url 'checkout' %}" id="checkout-form">
+    {% csrf_token %}
+    <input type="hidden" name="payment" id="payment-input" value="pix">
+    <input type="hidden" name="freight_type" id="freight_type" value="">
+    <input type="hidden" name="freight_price" id="freight_price" value="0">
+    <!-- Campos preenchidos pelo SDK do Mercado Pago no pagamento com cartão -->
+    <input type="hidden" name="mp_token" id="mp_token" value="">
+    <input type="hidden" name="mp_payment_method_id" id="mp_payment_method_id" value="">
+    <input type="hidden" name="mp_installments" id="mp_installments" value="1">
+    <input type="hidden" name="mp_issuer_id" id="mp_issuer_id" value="">
+
+    <div class="checkout-layout">
+      <div>
+        <div class="checkout-form-section">
+          <h3><i class="ph-light ph-map-pin"></i> Endereço de Entrega</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>CEP *</label>
+              <input type="text" name="cep" id="cep" placeholder="00000-000" maxlength="9" required value="{{ saved.cep }}">
+              <button type="button" onclick="calcCheckoutFrete()" class="btn btn-outline btn-sm" style="margin-top:8px;align-self:flex-start">Calcular frete</button>
+            </div>
+            <div class="form-group">
+              <label>Rua / Logradouro *</label>
+              <input type="text" name="street" id="street" placeholder="Nome da rua" required value="{{ saved.street }}">
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label>Número *</label>
+                <input type="text" name="number" id="number" placeholder="123" required value="{{ saved.number }}">
+              </div>
+              <div class="form-group">
+                <label>Complemento</label>
+                <input type="text" name="complement" id="complement" placeholder="Apto, Bloco..." value="{{ saved.complement }}">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Bairro *</label>
+              <input type="text" name="neighborhood" id="neighborhood" placeholder="Nome do bairro" required value="{{ saved.neighborhood }}">
+            </div>
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label>Cidade *</label>
+                <input type="text" name="city" id="city" required value="{{ saved.city }}">
+              </div>
+              <div class="form-group">
+                <label>Estado *</label>
+                <select name="state" id="state" required>
+                  <option value="">UF</option>
+                  {% for uf in "AC,AL,AP,AM,BA,CE,DF,ES,GO,MA,MT,MS,MG,PA,PB,PR,PE,PI,RJ,RN,RS,RO,RR,SC,SP,SE,TO"|split:"," %}
+                  <option value="{{ uf }}" {% if uf == saved.state %}selected{% endif %}>{{ uf }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="frete-options" style="margin-top:20px"></div>
+        </div>
+
+        <!-- Pagamento -->
+        <div class="checkout-form-section">
+          <h3><i class="ph-light ph-credit-card"></i> Pagamento</h3>
+          <div class="payment-options">
+            <div class="payment-option selected" data-method="pix" onclick="selectPayment('pix')">
+              <input type="radio" name="payment_radio" value="pix" checked>
+              <div class="payment-icon"><i class="ph-light ph-qr-code"></i></div>
+              <div class="payment-text">
+                <strong>PIX</strong>
+                <span>Aprovação imediata · QR Code automático</span>
+              </div>
+              <span style="background:var(--rosa-claro);color:var(--rosa-deep);padding:4px 10px;font-size:10px;font-weight:600;margin-left:auto;letter-spacing:0.1em">10% OFF</span>
+            </div>
+            <div class="payment-option" data-method="credit" onclick="selectPayment('credit')">
+              <input type="radio" name="payment_radio" value="credit">
+              <div class="payment-icon"><i class="ph-light ph-credit-card"></i></div>
+              <div class="payment-text">
+                <strong>Cartão de Crédito</strong>
+                <span>Até 12x sem juros</span>
+              </div>
+            </div>
+            <div class="payment-option" data-method="debit" onclick="selectPayment('debit')">
+              <input type="radio" name="payment_radio" value="debit">
+              <div class="payment-icon"><i class="ph-light ph-bank"></i></div>
+              <div class="payment-text">
+                <strong>Cartão de Débito</strong>
+                <span>Aprovação imediata</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulário de cartão (aparece ao selecionar crédito ou débito) -->
+          <div id="card-form-section" style="display:none;margin-top:24px">
+            <div style="display:grid;gap:14px">
+              <div class="form-group">
+                <label>Número do Cartão</label>
+                <div id="mp-cardNumber" class="mp-field"></div>
+              </div>
+              <div class="form-group">
+                <label>Nome no Cartão</label>
+                <div id="mp-cardholderName" class="mp-field"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div class="form-group">
+                  <label>Validade</label>
+                  <div id="mp-expirationDate" class="mp-field"></div>
+                </div>
+                <div class="form-group">
+                  <label>CVV</label>
+                  <div id="mp-securityCode" class="mp-field"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>CPF do Titular</label>
+                <div id="mp-identificationNumber" class="mp-field"></div>
+              </div>
+              <div class="form-group" id="installments-group" style="display:none">
+                <label>Parcelas</label>
+                <div id="mp-installments" class="mp-field"></div>
+              </div>
+            </div>
+            <div id="card-error" style="display:none;color:#DC2626;font-size:13px;margin-top:10px;padding:10px;background:#FEF2F2;border-radius:4px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkout-summary">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:400;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--borda)">Resumo</h3>
+
+        {% for item in cart %}
+        <div style="display:flex;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--borda)">
+          <img src="{{ item.image }}" style="width:56px;height:70px;object-fit:cover;flex-shrink:0;background:var(--fundo)" onerror="this.src='/static/img/placeholder.svg'">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px">{{ item.name }}</div>
+            {% if item.size or item.color %}<div style="font-size:11px;color:var(--texto-suave)">{{ item.color }}{% if item.color and item.size %} · {% endif %}{{ item.size }}</div>{% endif %}
+            <div style="font-size:13px;font-weight:500;margin-top:4px">{{ item.qty }}× R$ {{ item.price|brl }}</div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="summary-row"><span>Subtotal</span><span data-value="{{ total }}" id="subtotal-val">R$ {{ total|brl }}</span></div>
+        <div class="summary-row"><span>Frete</span><span id="checkout-freight" style="color:var(--texto-suave)">—</span></div>
+        <div class="summary-row total"><span>Total</span><span id="checkout-total">R$ {{ total|brl }}</span></div>
+
+        <button type="submit" id="checkout-submit-btn" class="btn btn-primary btn-full btn-lg" style="margin-top:24px">
+          Confirmar Pedido <i class="ph ph-arrow-right"></i>
+        </button>
+        <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--texto-suave);letter-spacing:0.1em;text-transform:uppercase">
+          <i class="ph-light ph-shield-check"></i> Criptografia SSL · Mercado Pago
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+.mp-field {
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  padding: 12px;
+  background: #fff;
+  min-height: 44px;
+}
+.mp-field iframe { width: 100% !important; }
+</style>
+
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<script>
+const MP_PUBLIC_KEY = '{{ mp_public_key }}';
+const TOTAL = parseFloat('{{ total }}') || 0;
+
+let mp, cardForm;
+let currentPayment = 'pix';
+let cardFormMounted = false;
+
+function selectPayment(method) {
+  currentPayment = method;
+  document.getElementById('payment-input').value = method;
+  document.querySelectorAll('.payment-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.method === method);
+  });
+
+  const cardSection = document.getElementById('card-form-section');
+  const installGroup = document.getElementById('installments-group');
+
+  if (method === 'credit' || method === 'debit') {
+    cardSection.style.display = 'block';
+    installGroup.style.display = method === 'credit' ? 'block' : 'none';
+    if (!cardFormMounted) mountCardForm();
+  } else {
+    cardSection.style.display = 'none';
+  }
+}
+
+function mountCardForm() {
+  if (!MP_PUBLIC_KEY) return;
+  cardFormMounted = true;
+  mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+
+  const freightPrice = parseFloat(document.getElementById('freight_price').value) || 0;
+  const amount = (TOTAL + freightPrice).toFixed(2);
+
+  cardForm = mp.cardForm({
+    amount: amount,
+    iframe: true,
+    form: {
+      id: 'checkout-form',
+      cardNumber:           { id: 'mp-cardNumber',           placeholder: '0000 0000 0000 0000' },
+      expirationDate:       { id: 'mp-expirationDate',       placeholder: 'MM/AA' },
+      securityCode:         { id: 'mp-securityCode',         placeholder: 'CVV' },
+      cardholderName:       { id: 'mp-cardholderName',       placeholder: 'Nome como no cartão' },
+      issuer:               { id: 'mp-issuer',               placeholder: 'Banco emissor' },
+      installments:         { id: 'mp-installments' },
+      identificationType:   { id: 'mp-identificationType' },
+      identificationNumber: { id: 'mp-identificationNumber', placeholder: '000.000.000-00' },
+      cardholderEmail:      { id: 'mp-cardholderEmail' },
+    },
+    callbacks: {
+      onFormMounted: err => { if (err) console.warn('MP form error:', err); },
+      onSubmit: event => {
+        event.preventDefault();
+        const btn = document.getElementById('checkout-submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-spinner"></i> Processando...';
+
+        const errEl = document.getElementById('card-error');
+        errEl.style.display = 'none';
+
+        try {
+          const data = cardForm.getCardFormData();
+          if (!data.token) {
+            errEl.textContent = 'Não foi possível validar o cartão. Verifique os dados e tente novamente.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Confirmar Pedido <i class="ph ph-arrow-right"></i>';
+            return;
+          }
+          document.getElementById('mp_token').value = data.token;
+          document.getElementById('mp_payment_method_id').value = data.paymentMethodId;
+          document.getElementById('mp_installments').value = data.installments || 1;
+          document.getElementById('mp_issuer_id').value = data.issuerId || '';
+          document.getElementById('checkout-form').submit();
+        } catch(e) {
+          errEl.textContent = 'Erro ao processar cartão. Tente novamente.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.innerHTML = 'Confirmar Pedido <i class="ph ph-arrow-right"></i>';
+        }
+      },
+      onValidityChange: ({ field, errorMessages }) => {
+        const errEl = document.getElementById('card-error');
+        if (errorMessages && errorMessages.length > 0) {
+          errEl.textContent = errorMessages[0];
+          errEl.style.display = 'block';
+        } else {
+          errEl.style.display = 'none';
+        }
+      },
+    },
+  });
+}
+
+// Intercepta o submit normal para cartão
+document.getElementById('checkout-form').addEventListener('submit', function(e) {
+  if (currentPayment === 'pix') return; // deixa seguir normalmente
+  // Para cartão, o SDK intercepta via onSubmit acima
+});
+</script>
+{% endblock %}

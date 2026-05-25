@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}Minha Conta — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Início</a>
+    <span class="sep">/</span>
+    <span>Minha Conta</span>
+  </div>
+
+  <div class="account-layout">
+    <aside class="account-sidebar">
+      <div class="account-avatar"><i class="ph-light ph-user"></i></div>
+      <div class="account-name">{{ user.name }}</div>
+      <div class="account-email">{{ user.email }}</div>
+      <nav class="account-nav">
+        <a href="{% url 'minha_conta' %}" class="active"><i class="ph-light ph-package"></i> Meus Pedidos</a>
+        <a href="{% url 'favoritos' %}"><i class="ph-light ph-heart"></i> Favoritos</a>
+        <a href="{% url 'produtos' %}"><i class="ph-light ph-storefront"></i> Continuar Comprando</a>
+        {% if user.is_admin %}
+        <a href="{% url 'admin_dashboard' %}" style="color:var(--rosa-deep)"><i class="ph-light ph-gear"></i> Administração</a>
+        {% endif %}
+        <a href="{% url 'logout' %}"><i class="ph-light ph-sign-out"></i> Sair</a>
+      </nav>
+    </aside>
+
+    <div>
+      <div class="section-header" style="margin-bottom:28px;text-align:left">
+        <h2 class="section-title" style="text-align:left">Meus Pedidos</h2>
+        <div class="section-divider" style="margin-left:0"></div>
+      </div>
+
+      {% if orders %}
+      <div class="orders-list">
+        {% for order in orders %}
+        <div class="order-row">
+          <div style="flex:1">
+            <div style="font-weight:500;margin-bottom:4px;letter-spacing:0.1em;text-transform:uppercase;font-size:13px">{{ order.order_number }}</div>
+            <div style="font-size:12px;color:var(--texto-suave);letter-spacing:0.04em">
+              {{ order.created_at|date:"d/m/Y · H:i" }} · {{ order.items.count }} item(s)
+            </div>
+          </div>
+          <div style="text-align:center">
+            <span class="order-status status-{{ order.status }}">{{ order.status }}</span>
+            <div style="font-size:10px;color:var(--texto-suave);margin-top:6px;letter-spacing:0.1em;text-transform:uppercase">{{ order.payment_method|upper }}</div>
+          </div>
+          <div style="font-weight:500;font-size:16px;min-width:110px;text-align:right">{{ order.fmt_total }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:80px 20px;background:white;border:1px solid var(--borda)">
+        <i class="ph-light ph-package" style="font-size:56px;color:var(--rosa-medio);margin-bottom:20px;display:block"></i>
+        <h3 style="margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase;font-size:1.2rem">Nenhum pedido ainda</h3>
+        <p style="color:var(--texto-suave);margin-bottom:28px;font-size:13px">Explore nossa loja e faça seu primeiro pedido</p>
+        <a href="{% url 'produtos' %}" class="btn btn-primary">Explorar Produtos <i class="ph ph-arrow-right"></i></a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

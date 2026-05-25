@@ -1,0 +1,50 @@
+{% extends 'admin/base.html' %}
+{% block title %}Categorias{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+
+{% block content %}
+<div class="admin-grid-2col" style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
+  <div class="admin-card">
+    <div class="admin-card-header"><h3>{{ categories|length }} categoria(s)</h3></div>
+    <div class="admin-table-wrap"><table class="admin-table">
+      <thead>
+        <tr><th>Nome</th><th>Slug</th><th>Produtos</th><th>Ação</th></tr>
+      </thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr>
+          <td><strong>{{ cat.name }}</strong></td>
+          <td style="color:#6B7280;font-size:13px">{{ cat.slug }}</td>
+          <td><span class="badge badge-blue">{{ cat.products.count }}</span></td>
+          <td>
+            <form method="POST" action="{% url 'admin_categoria_delete' cat.id %}" onsubmit="return confirm('Remover categoria?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA"><i class="ph-light ph-trash"></i> Remover</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;color:#6B7280;padding:32px">Nenhuma categoria cadastrada</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="admin-form">
+    <h3 style="font-size:15px;font-weight:600;margin-bottom:20px">Nova Categoria</h3>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="admin-form-group" style="margin-bottom:16px">
+        <label>Nome da Categoria *</label>
+        <input type="text" name="name" placeholder="Ex: Vestidos" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full"><i class="ph-light ph-plus"></i> Adicionar Categoria</button>
+    </form>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #E5E7EB">
+      <p style="font-size:13px;color:#6B7280;line-height:1.6">
+        O slug é gerado automaticamente a partir do nome e é usado nas URLs da loja.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

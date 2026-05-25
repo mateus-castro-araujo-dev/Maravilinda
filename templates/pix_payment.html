@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}Pagamento PIX — {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:48px 20px 80px">
+  <div class="pix-card">
+    <div class="pix-badge"><i class="ph-light ph-qr-code"></i> Pagamento via PIX</div>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;margin-bottom:8px;font-weight:400;letter-spacing:0.08em;text-transform:uppercase">Quase lá</h2>
+    <p style="color:var(--texto-suave);font-size:12px;letter-spacing:0.1em;text-transform:uppercase">Pedido <strong style="color:var(--texto)">{{ order.order_number }}</strong></p>
+
+    <div class="pix-total">{{ order.fmt_total }}</div>
+
+    <p style="font-size:12px;color:var(--texto-suave);margin-bottom:16px;letter-spacing:0.04em">
+      Escaneie o QR Code ou copie o código abaixo
+    </p>
+
+    <div class="pix-qr">
+      <img src="data:image/png;base64,{{ qr_img }}" alt="QR Code PIX">
+    </div>
+
+    <p style="font-size:11px;font-weight:500;margin:20px 0 10px;letter-spacing:0.15em;text-transform:uppercase">Código Copia e Cola</p>
+    <div class="pix-code" id="pix-code-text">{{ pix_code }}</div>
+    <button onclick="copyPix()" class="btn btn-outline btn-sm" style="margin-bottom:28px">
+      <i class="ph-light ph-copy"></i> Copiar Código
+    </button>
+
+    <div style="background:var(--fundo);padding:20px;text-align:left;margin-bottom:24px;border:1px solid var(--borda)">
+      <p style="font-size:11px;font-weight:500;margin-bottom:10px;letter-spacing:0.15em;text-transform:uppercase">Como pagar</p>
+      <ol style="font-size:12px;color:var(--texto-suave);padding-left:20px;line-height:2;letter-spacing:0.02em">
+        <li>Abra o app do seu banco</li>
+        <li>Acesse a área PIX</li>
+        <li>Escaneie o QR Code ou cole o código</li>
+        <li>Confirme o pagamento de <strong style="color:var(--texto)">{{ order.fmt_total }}</strong></li>
+      </ol>
+    </div>
+
+    <p style="font-size:11px;color:var(--texto-suave);margin-bottom:24px;letter-spacing:0.06em">
+      <i class="ph-light ph-clock"></i> O PIX expira em 30 minutos · Confirmação automática
+    </p>
+
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <a href="{% url 'minha_conta' %}" class="btn btn-outline btn-sm">Ver meus pedidos</a>
+      <a href="{% url 'index' %}" class="btn btn-ghost btn-sm">Voltar ao início</a>
+    </div>
+  </div>
+</div>
+
+{% if auto_confirm %}
+<script>
+(function () {
+  var url = "{% url 'pix_status' order.order_number %}";
+  var redirectTo = "{% url 'order_success' order.order_number %}";
+  var interval = setInterval(function () {
+    fetch(url, {credentials: 'same-origin'})
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.status === 'pago') {
+          clearInterval(interval);
+          window.location.href = redirectTo;
+        }
+      })
+      .catch(function () {});
+  }, 4000);
+})();
+</script>
+{% endif %}
+{% endblock %}

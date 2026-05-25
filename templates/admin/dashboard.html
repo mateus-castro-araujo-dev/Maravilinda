@@ -1,0 +1,85 @@
+{% extends 'admin/base.html' %}
+{% load core_tags %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="icon"><i class="ph-light ph-package"></i></div>
+    <div class="label">Total de Pedidos</div>
+    <div class="value">{{ total_orders }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon"><i class="ph-light ph-currency-circle-dollar"></i></div>
+    <div class="label">Receita</div>
+    <div class="value" style="font-size:1.3rem">R$ {{ total_revenue|brl }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon"><i class="ph-light ph-dress"></i></div>
+    <div class="label">Produtos Ativos</div>
+    <div class="value">{{ total_products }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon"><i class="ph-light ph-users"></i></div>
+    <div class="label">Clientes</div>
+    <div class="value">{{ total_users }}</div>
+  </div>
+</div>
+
+<div class="admin-grid-2col" style="display:grid;grid-template-columns:1fr 340px;gap:24px">
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h3>Pedidos Recentes</h3>
+      <a href="{% url 'admin_pedidos' %}" class="btn btn-outline btn-sm">Ver todos <i class="ph ph-arrow-right"></i></a>
+    </div>
+    <div class="admin-table-wrap"><table class="admin-table">
+      <thead>
+        <tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Data</th></tr>
+      </thead>
+      <tbody>
+        {% for order in recent_orders %}
+        <tr>
+          <td><strong>{{ order.order_number }}</strong></td>
+          <td>{% if order.user %}{{ order.user.name }}{% else %}—{% endif %}</td>
+          <td><strong>{{ order.fmt_total }}</strong></td>
+          <td><span class="badge badge-gray">{% if order.payment_method %}{{ order.payment_method|upper }}{% else %}—{% endif %}</span></td>
+          <td><span class="order-status status-{{ order.status }}">{{ order.status }}</span></td>
+          <td style="color:#6B7280;font-size:12px">{{ order.created_at|date:"d/m H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#6B7280;padding:36px">Nenhum pedido ainda</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-card-header"><h3><i class="ph-light ph-warning"></i> Estoque Baixo</h3></div>
+    <div>
+      {% for p in low_stock %}
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #F3F4F6">
+        <img src="{{ p.first_image }}" style="width:44px;height:54px;object-fit:cover;background:var(--fundo)" onerror="this.src='/static/img/placeholder.svg'">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:500;letter-spacing:0.06em">{{ p.name }}</div>
+          <div style="font-size:11px;color:#6B7280">{% if p.category %}{{ p.category.name }}{% else %}—{% endif %}</div>
+        </div>
+        <span class="badge {% if p.stock == 0 %}badge-red{% else %}badge-yellow{% endif %}">{{ p.stock }}</span>
+      </div>
+      {% empty %}
+      <div style="padding:36px;text-align:center;color:#6B7280;font-size:13px"><i class="ph-light ph-check-circle"></i> Estoque OK</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="admin-card" style="margin-top:24px">
+  <div class="admin-card-header"><h3>Ações Rápidas</h3></div>
+  <div style="display:flex;gap:10px;padding:20px;flex-wrap:wrap">
+    <a href="{% url 'admin_produto_form' %}" class="btn btn-primary btn-sm"><i class="ph-light ph-plus"></i> Novo Produto</a>
+    <a href="{% url 'admin_pedidos' %}?status=aguardando" class="btn btn-outline btn-sm"><i class="ph-light ph-hourglass"></i> Pendentes</a>
+    <a href="{% url 'admin_categorias' %}" class="btn btn-outline btn-sm"><i class="ph-light ph-tag"></i> Categorias</a>
+    <a href="{% url 'admin_usuarios' %}" class="btn btn-outline btn-sm"><i class="ph-light ph-users"></i> Clientes</a>
+  </div>
+</div>
+{% endblock %}

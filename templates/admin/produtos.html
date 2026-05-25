@@ -1,0 +1,68 @@
+{% extends 'admin/base.html' %}
+{% block title %}Produtos{% endblock %}
+{% block page_title %}Produtos{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+  <div class="admin-card-header">
+    <h3>{{ products|length }} produto(s) cadastrado(s)</h3>
+    <a href="{% url 'admin_produto_form' %}" class="btn btn-primary btn-sm"><i class="ph-light ph-plus"></i> Novo Produto</a>
+  </div>
+  <div class="admin-table-wrap"><table class="admin-table">
+    <thead>
+      <tr>
+        <th>Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th>
+        <th>Estoque</th><th>Destaque</th><th>Status</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in products %}
+      <tr>
+        <td>
+          <img src="{{ p.first_image }}" style="width:44px;height:56px;object-fit:cover;border-radius:8px;background:var(--fundo)"
+               onerror="this.src='/static/img/placeholder.svg'">
+        </td>
+        <td><strong>{{ p.name }}</strong></td>
+        <td>{% if p.category %}{{ p.category.name }}{% else %}—{% endif %}</td>
+        <td><strong style="color:var(--rosa-escuro)">{{ p.fmt_price }}</strong></td>
+        <td>
+          <span class="badge {% if p.stock == 0 %}badge-red{% elif p.stock <= 5 %}badge-yellow{% else %}badge-green{% endif %}">
+            {{ p.stock }} un.
+          </span>
+        </td>
+        <td>{% if p.is_featured %}<i class="ph-fill ph-star" style="color:#C4637A"></i>{% else %}—{% endif %}</td>
+        <td>
+          <span class="badge {% if p.is_active %}badge-green{% else %}badge-gray{% endif %}">
+            {% if p.is_active %}Ativo{% else %}Inativo{% endif %}
+          </span>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <a href="{% url 'admin_produto_form_edit' p.id %}" class="btn btn-outline btn-sm" style="padding:6px 12px"><i class="ph-light ph-pencil-simple"></i> Editar</a>
+
+            <form method="POST" action="{% url 'admin_repor_estoque' p.id %}"
+                  style="display:flex;gap:4px;align-items:center" title="Repor estoque">
+              {% csrf_token %}
+              <input type="number" name="qty" min="1" max="9999" placeholder="Qtd"
+                style="width:60px;padding:5px 8px;border:1px solid #E5E7EB;font-size:12px;height:32px;outline:none"
+                onclick="event.stopPropagation()" required>
+              <button type="submit" class="btn btn-sm"
+                style="background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;padding:5px 10px;height:32px;white-space:nowrap">
+                <i class="ph-light ph-plus"></i> Repor
+              </button>
+            </form>
+
+            <form method="POST" action="{% url 'admin_produto_delete' p.id %}" onsubmit="return confirm('Remover produto?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;padding:6px 10px"><i class="ph-light ph-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;color:#6B7280;padding:40px">Nenhum produto cadastrado. <a href="{% url 'admin_produto_form' %}" style="color:var(--rosa-escuro)">Adicionar agora →</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

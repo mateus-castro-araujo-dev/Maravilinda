@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+{% block title %}Favoritos — Maravilinda{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'index' %}">Início</a>
+    <span class="sep">/</span>
+    <span>Favoritos</span>
+  </div>
+
+  <div class="account-layout">
+    <aside class="account-sidebar">
+      <div class="account-avatar"><i class="ph-light ph-user"></i></div>
+      <div class="account-name">{{ user.name }}</div>
+      <div class="account-email">{{ user.email }}</div>
+      <nav class="account-nav">
+        <a href="{% url 'minha_conta' %}"><i class="ph-light ph-package"></i> Meus Pedidos</a>
+        <a href="{% url 'favoritos' %}" class="active"><i class="ph-light ph-heart"></i> Favoritos</a>
+        <a href="{% url 'produtos' %}"><i class="ph-light ph-storefront"></i> Continuar Comprando</a>
+        {% if user.is_admin %}
+        <a href="{% url 'admin_dashboard' %}" style="color:var(--rosa-deep)"><i class="ph-light ph-gear"></i> Administração</a>
+        {% endif %}
+        <a href="{% url 'logout' %}"><i class="ph-light ph-sign-out"></i> Sair</a>
+      </nav>
+    </aside>
+
+    <div>
+      <div class="section-header" style="margin-bottom:28px;text-align:left">
+        <h2 class="section-title" style="text-align:left">Favoritos</h2>
+        <div class="section-divider" style="margin-left:0"></div>
+      </div>
+
+      {% if items %}
+      <div class="product-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        {% for item in items %}
+        {% with p=item.product %}
+        <div class="product-card" style="position:relative">
+          <a href="{% url 'produto' p.id %}" class="product-card-image" style="display:block;text-decoration:none">
+            <img src="{{ p.first_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='/static/img/placeholder.svg'">
+            {% if p.is_featured %}<span class="product-card-badge">Destaque</span>{% endif %}
+          </a>
+          <button
+            class="product-card-wishlist wishlist-btn active"
+            data-pid="{{ p.id }}"
+            title="Remover dos favoritos"
+            style="opacity:1"
+            onclick="toggleWishlist(this, {{ p.id }}, event)"
+          ><i class="ph-fill ph-heart"></i></button>
+          <div class="product-card-info">
+            {% if p.category %}<div style="font-size:10px;color:var(--texto-suave);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px">{{ p.category.name }}</div>{% endif %}
+            <a href="{% url 'produto' p.id %}" class="product-card-name" style="text-decoration:none;color:inherit">{{ p.name }}</a>
+            <div class="product-card-price">{{ p.fmt_price }}</div>
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:80px 20px;background:white;border:1px solid var(--borda)">
+        <i class="ph-light ph-heart" style="font-size:56px;color:var(--rosa-medio);margin-bottom:20px;display:block"></i>
+        <h3 style="margin-bottom:10px;letter-spacing:0.08em;text-transform:uppercase;font-size:1.2rem">Nenhum favorito ainda</h3>
+        <p style="color:var(--texto-suave);margin-bottom:28px;font-size:13px">Salve os produtos que você mais gosta</p>
+        <a href="{% url 'produtos' %}" class="btn btn-primary">Explorar Produtos <i class="ph ph-arrow-right"></i></a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleWishlist(btn, pid, e) {
+  if (e) e.preventDefault();
+  fetch('{% url "api_wishlist_toggle" %}', {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '', 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'product_id=' + pid,
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.saved) {
+      const card = btn.closest('.product-card') || btn.closest('[data-pid]')?.parentElement;
+      if (card) card.remove();
+      const grid = document.querySelector('.product-grid');
+      if (grid && !grid.children.length) location.reload();
+    }
+  });
+}
+</script>
+{% endblock %}

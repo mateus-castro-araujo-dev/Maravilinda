@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST -H \"Authorization: Token 54fed4184b2b09893119240fadc1bf71e56228a1\" -H \"Content-Type: application/json\" -d \"{\\\\\"command\\\\\": \\\\\"cd /home/PRODMAN/prodman && source /home/PRODMAN/.virtualenvs/meu-env/bin/activate && python manage.py popular_banco >> /home/PRODMAN/popular_banco.log 2>&1\\\\\", \\\\\"hour\\\\\": 0, \\\\\"minute\\\\\": 0, \\\\\"enabled\\\\\": true, \\\\\"interval\\\\\": \\\\\"daily\\\\\"}\" \"https://www.pythonanywhere.com/api/v0/user/PRODMAN/schedule/\")",
+      "Bash(curl -s -X POST -H \"Authorization: Token 54fed4184b2b09893119240fadc1bf71e56228a1\" -F \"content=@C:\\\\Users\\\\Fernanda Castro\\\\Desktop\\\\Mateus\\\\prodman-main\\\\core\\\\views.py\" \"https://www.pythonanywhere.com/api/v0/user/PRODMAN/files/path/home/PRODMAN/prodman/core/views.py\")",
+      "Bash(curl -s -X POST -H \"Authorization: Token 54fed4184b2b09893119240fadc1bf71e56228a1\" -F \"content=@C:\\\\Users\\\\Fernanda Castro\\\\Desktop\\\\Mateus\\\\prodman-main\\\\apae_biscoitos\\\\urls.py\" \"https://www.pythonanywhere.com/api/v0/user/PRODMAN/files/path/home/PRODMAN/prodman/apae_biscoitos/urls.py\")",
+      "Bash(curl -s -X POST -H \"Authorization: Token 54fed4184b2b09893119240fadc1bf71e56228a1\" \"https://www.pythonanywhere.com/api/v0/user/PRODMAN/webapps/PRODMAN.pythonanywhere.com/reload/\")"
+    ]
+  }
+}
