@@ -48,7 +48,6 @@
   <div class="drawer-nav">
     <a href="{% url 'index' %}"><i class="ph-light ph-house"></i> Início</a>
     <a href="{% url 'produtos' %}"><i class="ph-light ph-storefront"></i> Produtos</a>
-    <a href="{% url 'produtos' %}?categoria=sale"><i class="ph-light ph-tag"></i> Sale</a>
     <div class="drawer-section-title">Categorias</div>
     {% for cat in all_categories %}
     <a href="{% url 'produtos' %}?categoria={{ cat.slug }}">{{ cat.name }}</a>
@@ -100,14 +99,13 @@
 
   <nav class="header-nav">
     <a href="{% url 'index' %}" {% if request.resolver_match.url_name == 'index' %}class="active"{% endif %}>Início</a>
-    <a href="{% url 'produtos' %}?categoria=sale" {% if request.resolver_match.url_name == 'produtos' and request.GET.categoria == 'sale' %}class="active"{% endif %}>Sale</a>
     <a href="{% url 'produtos' %}" {% if request.resolver_match.url_name == 'produtos' and not request.GET.categoria %}class="active"{% endif %}>Produtos</a>
     <a href="#" onclick="event.preventDefault();window.open('https://wa.me/{{ whatsapp_number }}','_blank')">Contato</a>
   </nav>
 
   <div class="search-bar" id="search-bar">
-    <form id="search-form" style="display:flex;gap:8px;flex:1">
-      <input type="text" id="search-input" placeholder="O que você procura?" autocomplete="off">
+    <form id="search-form" action="{% url 'produtos' %}" method="GET" style="display:flex;gap:8px;flex:1">
+      <input type="text" id="search-input" name="q" placeholder="O que você procura?" autocomplete="off">
       <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
     </form>
     <button onclick="toggleSearch()" class="btn-icon"><i class="ph ph-x"></i></button>
