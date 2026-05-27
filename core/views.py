@@ -1,10 +1,15 @@
 import base64
+import hashlib
+import hmac as _hmac
 import json
+import logging
 import os
 import threading
 import uuid
 from functools import wraps
 from io import BytesIO
+
+logger = logging.getLogger(__name__)
 
 import requests as http_req
 from django.conf import settings as django_settings
@@ -33,6 +38,34 @@ class AsyncPasswordResetView(PasswordResetView):
 from .services import mercadopago as mp
 
 from .models import Category, Order, OrderItem, PendingOrder, Product, User, Wishlist
+
+# ── Taxas Mercado Pago por número de parcelas ──────────────────────────────────
+MP_FEE_RATES = {
+    1: 0.0499, 2: 0.0699, 3: 0.0699, 4: 0.0899,
+    5: 0.0899, 6: 0.0899, 7: 0.0999, 8: 0.0999,
+    9: 0.0999, 10: 0.0999, 11: 0.0999, 12: 0.0999,
+}
+
+
+def _verify_mp_signature(request, payment_id):
+    """Verifica assinatura HMAC do webhook do Mercado Pago."""
+    secret = getattr(django_settings, 'MERCADOPAGO_WEBHOOK_SECRET', '')
+    if not secret:
+        return True  # se não configurado, aceita (log de aviso)
+    x_signature = request.headers.get('x-signature', '')
+    x_request_id = request.headers.get('x-request-id', '')
+    ts = v1 = ''
+    for part in x_signature.split(','):
+        k, _, val = part.partition('=')
+        if k.strip() == 'ts':
+            ts = val.strip()
+        elif k.strip() == 'v1':
+            v1 = val.strip()
+    if not ts or not v1:
+        return False
+    manifest = f"id:{payment_id};request-id:{x_request_id};ts:{ts};"
+    expected = _hmac.new(secret.encode('utf-8'), manifest.encode('utf-8'), hashlib.sha256).hexdigest()
+    return _hmac.compare_digest(expected, v1)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -410,12 +443,21 @@ def checkout_view(request):
             'saved_neighborhood', 'saved_city', 'saved_state', 'saved_payment_method',
         ])
 
+        # Calcula taxa MP para crédito
+        mp_installments_val = int(request.POST.get('mp_installments', 1) or 1)
+        mp_fee = 0.0
+        if payment == 'credit':
+            fee_rate = MP_FEE_RATES.get(mp_installments_val, 0.0499)
+            mp_fee = round((subtotal + freight_price) * fee_rate, 2)
+        total_final = round(subtotal + freight_price + mp_fee, 2)
+
         pending_data = {
             'user_id': request.user.id,
             'payment_method': payment,
             'subtotal': subtotal,
             'freight': freight_price,
-            'total': subtotal + freight_price,
+            'mp_fee': mp_fee,
+            'total': total_final,
             'freight_type': freight_type,
             'cep': cep,
             'street': street,
@@ -445,7 +487,6 @@ def checkout_view(request):
         if payment in ('credit', 'debit'):
             mp_token = request.POST.get('mp_token', '')
             mp_method = request.POST.get('mp_payment_method_id', '')
-            mp_installments = request.POST.get('mp_installments', 1)
             mp_issuer = request.POST.get('mp_issuer_id', '')
 
             if not mp_token or not mp_method:
@@ -455,7 +496,7 @@ def checkout_view(request):
 
             try:
                 result = mp.create_card_payment(
-                    _pending_as_order(pending), mp_token, mp_method, mp_installments, mp_issuer
+                    _pending_as_order(pending), mp_token, mp_method, mp_installments_val, mp_issuer
                 )
                 pending.external_id = result['id']
                 pending.data['external_provider'] = 'mercadopago'
@@ -469,6 +510,9 @@ def checkout_view(request):
                     request.session.modified = True
                 elif result['status'] in ('in_process', 'pending', 'authorized'):
                     order = _create_order_from_pending(pending)
+                    # Limpa carrinho mesmo para pagamentos em análise
+                    request.session['cart'] = []
+                    request.session.modified = True
                 else:
                     pending.delete()
                     messages.error(request, 'Pagamento recusado. Verifique os dados do cartão e tente novamente.')
@@ -516,20 +560,26 @@ def pix_payment_view(request, num):
     if use_mp:
         try:
             if not pending.external_id:
+                # Primeira vez — cria PIX e salva QR no pending para reusar
                 pix = mp.create_pix(_pending_as_order(pending))
-                pending.external_id = pix['id'] or ''
-                pending.data['external_provider'] = 'mercadopago'
-                pending.data['external_id'] = pix['id'] or ''
-                pending.save()
+                if pix.get('qr_code'):
+                    pending.external_id = pix['id'] or ''
+                    pending.data['external_provider'] = 'mercadopago'
+                    pending.data['external_id'] = pix['id'] or ''
+                    pending.data['pix_qr_code'] = pix['qr_code']
+                    pending.data['pix_qr_base64'] = pix['qr_code_base64']
+                    pending.save()
+                    pix_code = pix['qr_code']
+                    qr_img = pix['qr_code_base64']
+                    auto_confirm = True
             else:
-                pix = mp.create_pix(_pending_as_order(pending))
-            if pix.get('qr_code'):
-                pix_code = pix['qr_code']
-                qr_img = pix['qr_code_base64']
-                auto_confirm = True
+                # Reload da página — reutiliza QR já criado (sem nova cobrança)
+                pix_code = pending.data.get('pix_qr_code', '')
+                qr_img = pending.data.get('pix_qr_base64', '')
+                if pix_code:
+                    auto_confirm = True
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f'Falha ao gerar PIX MP: {e}. Usando QR estático.')
+            logger.warning(f'Falha ao gerar PIX MP: {e}. Usando QR estático.')
 
     if not pix_code:
         qr_img, pix_code = generate_pix_qr(pending.total, pending.order_number)
@@ -669,6 +719,11 @@ def mercadopago_webhook_view(request):
     payment_id = str((payload.get('data') or {}).get('id', ''))
     if not payment_id:
         return JsonResponse({'ok': True})
+
+    # Verificação de assinatura HMAC
+    if not _verify_mp_signature(request, payment_id):
+        logger.warning(f'Webhook MP com assinatura inválida para payment_id={payment_id}')
+        return JsonResponse({'error': 'invalid signature'}, status=400)
 
     try:
         status = mp.check_status(payment_id)
@@ -823,6 +878,9 @@ def admin_produto_form_view(request, pid=None):
         os.makedirs(upload_folder, exist_ok=True)
         for f in request.FILES.getlist('images'):
             if f and f.name:
+                if f.size > django_settings.MAX_UPLOAD_SIZE:
+                    messages.error(request, f'Arquivo "{f.name}" muito grande. Máximo 16MB.')
+                    continue
                 ext = f.name.rsplit('.', 1)[-1].lower()
                 if ext in ('jpg', 'jpeg', 'png', 'webp'):
                     fname = f"{uuid.uuid4().hex}.{ext}"

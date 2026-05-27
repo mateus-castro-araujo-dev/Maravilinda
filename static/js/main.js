@@ -323,6 +323,10 @@ async function calcCheckoutFrete() {
 
   try {
     const res = await apiPost('/api/frete/', { cep });
+    if (res.error) {
+      if (resultEl) resultEl.innerHTML = `<div style="padding:12px;color:#DC2626">${res.error}</div>`;
+      return;
+    }
     if (res.pac && resultEl) {
       resultEl.innerHTML = `
         <label class="frete-radio-option" onclick="selectFreight('PAC', ${res.pac.price})">
@@ -340,7 +344,9 @@ async function calcCheckoutFrete() {
           <strong>${res.sedex.price === 0 ? 'Grátis' : 'R$ ' + res.sedex.price.toFixed(2).replace('.', ',')}</strong>
         </label>`;
     }
-  } catch (e) {}
+  } catch (e) {
+    if (resultEl) resultEl.innerHTML = '<div style="padding:12px;color:#DC2626">Erro ao calcular frete. Tente novamente.</div>';
+  }
 }
 
 function selectFreight(type, price) {
@@ -478,7 +484,7 @@ function updateOrderStatus(orderId) {
   form.method = 'POST';
   form.action = `/admin/pedido/${orderId}/status/`;
   form.innerHTML = `
-    <input type="hidden" name="csrf_token" value="${getCsrf()}">
+    <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrf()}">
     <input type="hidden" name="status" value="${status}">
     <input type="hidden" name="payment_status" value="${payStatus || ''}">`;
   document.body.appendChild(form);

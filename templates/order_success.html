@@ -8,6 +8,10 @@
     <div class="success-icon"><i class="ph-light ph-check-circle"></i></div>
     <h2>Pedido Realizado</h2>
     <p>Obrigada pela sua compra, <strong style="color:var(--texto)">{{ first_name }}</strong></p>
+
+    {% if aguardando %}
+    <p style="color:var(--texto-suave);font-size:14px">Seu pagamento está sendo processado. Você receberá a confirmação em breve.</p>
+    {% elif order %}
     <p>Você receberá a confirmação por e-mail em breve.</p>
     <div class="order-num">{{ order.order_number }}</div>
 
@@ -20,6 +24,7 @@
     <p style="font-size:12px;color:var(--texto-suave);margin-bottom:32px;letter-spacing:0.04em">
       <i class="ph-light ph-map-pin"></i> {{ order.street }}, {{ order.number }} — {{ order.city }}/{{ order.state }}
     </p>
+    {% endif %}
 
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
       <a href="{% url 'minha_conta' %}" class="btn btn-primary">Meus Pedidos</a>

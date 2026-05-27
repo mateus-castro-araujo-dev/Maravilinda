@@ -17,15 +17,17 @@ class MercadoPagoError(Exception):
     pass
 
 
-def _headers():
+def _headers(idempotency_key=None):
     token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', '')
     if not token:
         raise MercadoPagoError('MERCADOPAGO_ACCESS_TOKEN não configurado.')
-    return {
+    h = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': '',
     }
+    if idempotency_key:
+        h['X-Idempotency-Key'] = idempotency_key
+    return h
 
 
 def create_pix(order):
@@ -36,8 +38,7 @@ def create_pix(order):
     email = (user.email if user else '') or 'cliente@maravilinda.com.br'
     name = (user.name if user else '') or 'Cliente'
 
-    headers = _headers()
-    headers['X-Idempotency-Key'] = order.order_number
+    headers = _headers(idempotency_key=order.order_number)
 
     payload = {
         'transaction_amount': round(float(order.total), 2),
@@ -73,8 +74,7 @@ def create_card_payment(order, token, payment_method_id, installments=1, issuer_
     user = order.user
     email = (user.email if user else '') or 'cliente@maravilinda.com.br'
 
-    headers = _headers()
-    headers['X-Idempotency-Key'] = f'{order.order_number}-card'
+    headers = _headers(idempotency_key=f'{order.order_number}-card')
 
     payload = {
         'transaction_amount': round(float(order.total), 2),
@@ -104,7 +104,7 @@ def check_status(payment_id):
     """
     Consulta status de um pagamento. Retorna 'PAID', 'PENDING' ou 'REJECTED'.
     """
-    r = requests.get(f'{BASE_URL}/v1/payments/{payment_id}', headers=_headers(), timeout=TIMEOUT)
+    r = requests.get(f'{BASE_URL}/v1/payments/{payment_id}', headers=_headers(None), timeout=TIMEOUT)
     if not r.ok:
         raise MercadoPagoError(f'Mercado Pago {r.status_code}: {r.text}')
     status = r.json().get('status', '').lower()

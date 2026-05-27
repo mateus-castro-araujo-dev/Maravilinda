@@ -146,7 +146,14 @@ class Order(models.Model):
         return self.order_number
 
     def gen_number(self):
-        self.order_number = f"MLV{datetime.now().strftime('%y%m%d')}{secrets.token_hex(3).upper()}"
+        from django.db import IntegrityError
+        for _ in range(10):
+            candidate = f"MLV{datetime.now().strftime('%y%m%d')}{secrets.token_hex(3).upper()}"
+            if not Order.objects.filter(order_number=candidate).exists() \
+               and not PendingOrder.objects.filter(order_number=candidate).exists():
+                self.order_number = candidate
+                return
+        raise ValueError("Não foi possível gerar número de pedido único.")
 
     @property
     def fmt_total(self):

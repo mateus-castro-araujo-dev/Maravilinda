@@ -71,7 +71,7 @@
           <img src="{{ p.first_image }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='/static/img/placeholder.svg'">
           {% if p.images_list|length > 1 %}<img class="img-hover" src="{{ p.images_list.1 }}" alt="{{ p.name }}" loading="lazy">{% endif %}
           {% if p.is_featured %}<span class="product-card-badge">Destaque</span>{% endif %}
-          {% if forloop.counter <= 4 %}<span class="product-card-badge novo" style="top:auto;bottom:0;left:0">Novo</span>{% endif %}
+          {% if p in recent %}<span class="product-card-badge novo" style="top:auto;bottom:0;left:0">Novo</span>{% endif %}
           <button class="product-card-wishlist" data-pid="{{ p.id }}" onclick="toggleWishlist(this, {{ p.id }}, event); return false;"><i class="ph-light ph-heart"></i></button>
           <div class="product-card-actions"><span class="btn btn-primary">Ver produto</span></div>
         </div>

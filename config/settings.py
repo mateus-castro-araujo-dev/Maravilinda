@@ -5,11 +5,16 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-maravilinda-secret-key-change-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    import sys
+    print("AVISO: SECRET_KEY não definida no .env — usando chave temporária insegura.", file=sys.stderr)
+    SECRET_KEY = 'django-insecure-temporaria-defina-no-env'
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['192.168.0.75', '*']
+_allowed = os.environ.get('ALLOWED_HOSTS', 'lojamaravilinda.com.br,www.lojamaravilinda.com.br,localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -116,7 +121,7 @@ MAX_UPLOAD_SIZE = 16 * 1024 * 1024
 # Loja config
 WHATSAPP_NUMBER = '5586994156794'
 CORREIOS_CEP_ORIGEM = '64218440'
-MELHOR_ENVIO_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiOTU5OTZiOTBiMzhlYWIyMjNmMjliZTM0N2Q5YTNmMmFjNjBhYWI2YTZmZDYyZTFjNWYxYWFiNDdjZjg5OGY2NmVlZDAwMGRhMzBmNTBkYzUiLCJpYXQiOjE3Nzg4OTk0ODcuMzMzMDMyLCJuYmYiOjE3Nzg4OTk0ODcuMzMzMDM0LCJleHAiOjE4MTA0MzU0ODcuMzIzNDUxLCJzdWIiOiJhMWNhMzkwMy03NWY3LTRiNGEtOWI2Ny1iMTE3NTVkN2YxNmYiLCJzY29wZXMiOlsic2hpcHBpbmctY2FsY3VsYXRlIl19.QraPu0JSpmTSr0khHP7nr7Dn12ynzmWeU1XInnrqOk9YA-6xQybZt4Y0psNWjgSsWRx4W86uls-6wK8b9g09_8MyltGFPSkYdN-IBOWl8KZP7NG3kjXL2yMC1mWaekSFnNZenPsDQzZ7pLiPbMCaXEdyEVZIRixAJuj4UJKJa3J5TTfuBZB0CswkgUX8zacu7Sr296vouuDypfAoYWNEzmUZepF3jZan0hoBpBo1zMf3SfoWrnfpJwh0B9EGWSWv6yIV-GIAUNTEE63Wxhl7N4usUbnBDaErLw9mUq1GJ6PzTPVkFvlShbsVKmrDF5vL1IA0SCEwYl0g0p_YJ2kRqlQXOZNxlvuZ94d-iYhvXFNLKvLhoGV2m6LW9vqUR4-t_rVskh3XXgU-d5xJ1y4cc0KEgXjUGupOKyyfQTo3ABmT-KfWGp0Xy425IsjTBKhoxoNjiOY4HniwIh8Dcqh4Q82oFM6banhXFLj5EWEEeGaiBHdrMARW7XAuzrJm9_1NAmTT0YC37jlaVQX5nQV86h-SRQAOfl20mO__g7yfqD9f_8TOosHnwEExbqQccQbCJ0fGBRX-fHYZrey7bho5rQSz0t9QXEaMznx5yKXaw1-LjqCgtZVhmXmSYq2fHwAXs9l8FasvyrfGfaODoqUbkWrnw8im2D-TeP05X0WY84Y'
+MELHOR_ENVIO_TOKEN = os.environ.get('MELHOR_ENVIO_TOKEN', '')
 MELHOR_ENVIO_SANDBOX = os.environ.get('MELHOR_ENVIO_SANDBOX', 'false').lower() == 'true'
 INSTAGRAM_USER = 'maravilinda_s.o'
 FACEBOOK_USER = 'maravilinda.no'
