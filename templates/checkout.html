@@ -284,8 +284,15 @@ function mountCardForm() {
   });
 }
 
-// Intercepta o submit normal para cartão
+// Valida frete e intercepta submit
 document.getElementById('checkout-form').addEventListener('submit', function(e) {
+  const freightType = document.getElementById('freight_type').value;
+  if (!freightType) {
+    e.preventDefault();
+    alert('Por favor, calcule e selecione uma opção de frete antes de continuar.');
+    document.getElementById('cep').focus();
+    return false;
+  }
   if (currentPayment === 'pix') return; // deixa seguir normalmente
   // Para cartão, o SDK intercepta via onSubmit acima
 });
