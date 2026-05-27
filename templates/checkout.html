@@ -157,6 +157,7 @@
 
         <div class="summary-row"><span>Subtotal</span><span data-value="{{ total }}" id="subtotal-val">R$ {{ total|brl }}</span></div>
         <div class="summary-row"><span>Frete</span><span id="checkout-freight" style="color:var(--texto-suave)">—</span></div>
+        <div class="summary-row" id="mp-fee-row" style="display:none"><span style="color:#e67e22">Taxa Mercado Pago</span><span id="mp-fee-val" style="color:#e67e22">—</span></div>
         <div class="summary-row total"><span>Total</span><span id="checkout-total">R$ {{ total|brl }}</span></div>
 
         <button type="submit" id="checkout-submit-btn" class="btn btn-primary btn-full btn-lg" style="margin-top:24px">
@@ -208,6 +209,7 @@ function selectPayment(method) {
   } else {
     cardSection.style.display = 'none';
   }
+  if (typeof updateCheckoutTotal === 'function') updateCheckoutTotal();
 }
 
 function mountCardForm() {

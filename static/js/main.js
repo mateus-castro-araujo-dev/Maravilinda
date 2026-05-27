@@ -267,12 +267,59 @@ function selectPayment(method) {
 }
 
 /* ── Checkout: Freight Selection ─────────────────────────────────────────────── */
+
+// Taxas Mercado Pago por parcelas
+const MP_FEES = {
+  1:  0.0499,
+  2:  0.0699,
+  3:  0.0699,
+  4:  0.0899,
+  5:  0.0899,
+  6:  0.0899,
+  7:  0.0999,
+  8:  0.0999,
+  9:  0.0999,
+  10: 0.0999,
+  11: 0.0999,
+  12: 0.0999,
+};
+
+let currentInstallments = 1;
+
+function getMpFeeRate(installments) {
+  return MP_FEES[installments] || MP_FEES[1];
+}
+
+function updateCheckoutTotal() {
+  const subtotal = parseFloat(document.getElementById('subtotal-val')?.dataset.value || 0);
+  const freight  = parseFloat(document.getElementById('freight_price')?.value || 0);
+  const method   = document.getElementById('payment-input')?.value || 'pix';
+
+  let total = subtotal + freight;
+
+  const feeRow = document.getElementById('mp-fee-row');
+  const feeVal = document.getElementById('mp-fee-val');
+
+  if (method === 'credit') {
+    const rate = getMpFeeRate(currentInstallments);
+    const fee  = parseFloat((total * rate).toFixed(2));
+    total += fee;
+    if (feeRow) feeRow.style.display = '';
+    if (feeVal) feeVal.textContent = `R$ ${fee.toFixed(2).replace('.', ',')}`;
+  } else {
+    if (feeRow) feeRow.style.display = 'none';
+  }
+
+  const totalEl = document.getElementById('checkout-total');
+  if (totalEl) totalEl.textContent = fmtPrice(total);
+}
+
 async function calcCheckoutFrete() {
   const cep = document.getElementById('cep')?.value.replace(/\D/g, '');
   if (cep?.length !== 8) { showFlash('Digite um CEP válido primeiro.', 'error'); return; }
 
   const resultEl = document.getElementById('frete-options');
-  if (resultEl) resultEl.innerHTML = '<div style="padding:12px;color:#999">Calculando...</div>';
+  if (resultEl) resultEl.innerHTML = '<div style="padding:12px;color:#999">Calculando frete...</div>';
 
   try {
     const res = await apiPost('/api/frete/', { cep });
@@ -283,14 +330,14 @@ async function calcCheckoutFrete() {
           <div class="frete-radio-info">
             <strong>PAC</strong> — ${res.pac.days}
           </div>
-          <strong>R$ ${res.pac.price.toFixed(2).replace('.', ',')}</strong>
+          <strong>${res.pac.price === 0 ? 'Grátis' : 'R$ ' + res.pac.price.toFixed(2).replace('.', ',')}</strong>
         </label>
         <label class="frete-radio-option" onclick="selectFreight('SEDEX', ${res.sedex.price})">
           <input type="radio" name="freight_radio" value="SEDEX">
           <div class="frete-radio-info">
             <strong>SEDEX</strong> — ${res.sedex.days}
           </div>
-          <strong>R$ ${res.sedex.price.toFixed(2).replace('.', ',')}</strong>
+          <strong>${res.sedex.price === 0 ? 'Grátis' : 'R$ ' + res.sedex.price.toFixed(2).replace('.', ',')}</strong>
         </label>`;
     }
   } catch (e) {}
@@ -299,12 +346,20 @@ async function calcCheckoutFrete() {
 function selectFreight(type, price) {
   document.getElementById('freight_type').value = type;
   document.getElementById('freight_price').value = price;
-  const subtotal = parseFloat(document.getElementById('subtotal-val')?.dataset.value || 0);
-  const totalEl = document.getElementById('checkout-total');
-  if (totalEl) totalEl.textContent = fmtPrice(subtotal + price);
   const freightEl = document.getElementById('checkout-freight');
-  if (freightEl) freightEl.textContent = fmtPrice(price);
+  if (freightEl) freightEl.textContent = price === 0 ? 'Grátis' : fmtPrice(price);
+  updateCheckoutTotal();
 }
+
+// Auto-calcular frete ao preencher CEP
+document.addEventListener('DOMContentLoaded', function () {
+  const cepInput = document.getElementById('cep');
+  if (!cepInput) return;
+  cepInput.addEventListener('input', function () {
+    const digits = this.value.replace(/\D/g, '');
+    if (digits.length === 8) calcCheckoutFrete();
+  });
+});
 
 /* ── Copy PIX ────────────────────────────────────────────────────────────────── */
 function copyPix() {
