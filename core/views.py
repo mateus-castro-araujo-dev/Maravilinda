@@ -523,11 +523,13 @@ def pix_payment_view(request, num):
                 pending.save()
             else:
                 pix = mp.create_pix(_pending_as_order(pending))
-            pix_code = pix['qr_code']
-            qr_img = pix['qr_code_base64']
-            auto_confirm = True
-        except mp.MercadoPagoError as e:
-            messages.warning(request, f'Falha ao gerar PIX: {e}. Usando QR estático.')
+            if pix.get('qr_code'):
+                pix_code = pix['qr_code']
+                qr_img = pix['qr_code_base64']
+                auto_confirm = True
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f'Falha ao gerar PIX MP: {e}. Usando QR estático.')
 
     if not pix_code:
         qr_img, pix_code = generate_pix_qr(pending.total, pending.order_number)

@@ -120,9 +120,9 @@ MELHOR_ENVIO_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpI
 MELHOR_ENVIO_SANDBOX = os.environ.get('MELHOR_ENVIO_SANDBOX', 'false').lower() == 'true'
 INSTAGRAM_USER = 'maravilinda_s.o'
 FACEBOOK_USER = 'maravilinda.no'
-PIX_KEY = 'pix@maravilinda.com.br'
+PIX_KEY = os.environ.get('PIX_KEY', 'Lojamaravilindastore@gmail.com')
 PIX_NAME = 'Maravilinda Moda'
-PIX_CITY = 'Sao Paulo'
+PIX_CITY = 'Parnaiba'
 
 # ── Mercado Pago ─────────────────────────────────────────────────────────────
 MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN', '')

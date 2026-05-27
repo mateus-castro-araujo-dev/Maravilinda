@@ -189,6 +189,7 @@ const TOTAL = parseFloat('{{ total }}') || 0;
 let mp, cardForm;
 let currentPayment = 'pix';
 let cardFormMounted = false;
+let cardFormTouched = false;
 
 function selectPayment(method) {
   currentPayment = method;
@@ -233,7 +234,11 @@ function mountCardForm() {
       cardholderEmail:      { id: 'mp-cardholderEmail' },
     },
     callbacks: {
-      onFormMounted: err => { if (err) console.warn('MP form error:', err); },
+      onFormMounted: err => {
+        if (err) console.warn('MP form error:', err);
+        // marca como tocado após o usuário interagir com qualquer campo
+        document.getElementById('card-form-section').addEventListener('input', () => { cardFormTouched = true; }, { once: true });
+      },
       onSubmit: event => {
         event.preventDefault();
         const btn = document.getElementById('checkout-submit-btn');
@@ -265,6 +270,8 @@ function mountCardForm() {
         }
       },
       onValidityChange: ({ field, errorMessages }) => {
+        // só mostra erro depois que o usuário interagiu com o campo
+        if (!cardFormTouched) return;
         const errEl = document.getElementById('card-error');
         if (errorMessages && errorMessages.length > 0) {
           errEl.textContent = errorMessages[0];
