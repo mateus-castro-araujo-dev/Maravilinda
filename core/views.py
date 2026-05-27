@@ -51,7 +51,8 @@ def _verify_mp_signature(request, payment_id):
     """Verifica assinatura HMAC do webhook do Mercado Pago."""
     secret = getattr(django_settings, 'MERCADOPAGO_WEBHOOK_SECRET', '')
     if not secret:
-        return True  # se não configurado, aceita (log de aviso)
+        logger.warning('MERCADOPAGO_WEBHOOK_SECRET não configurado — webhook aceito sem verificação de assinatura.')
+        return True
     x_signature = request.headers.get('x-signature', '')
     x_request_id = request.headers.get('x-request-id', '')
     ts = v1 = ''
@@ -416,9 +417,13 @@ def checkout_view(request):
         freight_price = float(request.POST.get('freight_price', 0) or 0)
         subtotal = cart_total(request)
 
-        tmp = Order()
-        tmp.gen_number()
-        num = tmp.order_number
+        try:
+            tmp = Order()
+            tmp.gen_number()
+            num = tmp.order_number
+        except ValueError:
+            messages.error(request, 'Erro interno ao gerar pedido. Tente novamente.')
+            return redirect('checkout')
 
         cep = request.POST.get('cep', '')
         street = request.POST.get('street', '')
@@ -533,6 +538,7 @@ def checkout_view(request):
     return render(request, 'checkout.html', {
         'cart': cart,
         'total': cart_total(request),
+        'mp_public_key': getattr(django_settings, 'MERCADOPAGO_PUBLIC_KEY', ''),
         'saved': {
             'cep': u.saved_cep,
             'street': u.saved_street,
@@ -646,38 +652,53 @@ def _pending_as_order(pending):
 
 
 def _create_order_from_pending(pending):
-    d = pending.data
-    order = Order()
-    order.order_number = pending.order_number
-    order.user_id = d['user_id']
-    order.payment_method = d['payment_method']
-    order.subtotal = d['subtotal']
-    order.freight = d['freight']
-    order.total = d['total']
-    order.freight_type = d['freight_type']
-    order.cep = d['cep']
-    order.street = d['street']
-    order.number = d['number']
-    order.complement = d['complement']
-    order.neighborhood = d['neighborhood']
-    order.city = d['city']
-    order.state = d['state']
-    order.external_provider = d.get('external_provider', '')
-    order.external_id = pending.external_id or d.get('external_id', '')
-    order.external_url = d.get('external_url', '')
-    order.save()
-    for item in d['items']:
-        OrderItem.objects.create(
-            order=order,
-            product_id=item['product_id'],
-            product_name=item['product_name'],
-            color=item.get('color', ''),
-            size=item.get('size', ''),
-            quantity=item['quantity'],
-            unit_price=item['unit_price'],
-        )
-    pending.delete()
-    return order
+    from django.db import transaction
+    with transaction.atomic():
+        # Protege contra race condition: revalida que pending ainda existe
+        try:
+            pending = PendingOrder.objects.select_for_update().get(pk=pending.pk)
+        except PendingOrder.DoesNotExist:
+            # Já foi processado por outra thread — retorna o pedido já criado
+            return Order.objects.get(order_number=pending.order_number)
+
+        # Se o Order já existe (criado pela outra thread), apenas retorna
+        existing = Order.objects.filter(order_number=pending.order_number).first()
+        if existing:
+            pending.delete()
+            return existing
+
+        d = pending.data
+        order = Order()
+        order.order_number = pending.order_number
+        order.user_id = d['user_id']
+        order.payment_method = d['payment_method']
+        order.subtotal = d['subtotal']
+        order.freight = d['freight']
+        order.total = d['total']
+        order.freight_type = d['freight_type']
+        order.cep = d['cep']
+        order.street = d['street']
+        order.number = d['number']
+        order.complement = d['complement']
+        order.neighborhood = d['neighborhood']
+        order.city = d['city']
+        order.state = d['state']
+        order.external_provider = d.get('external_provider', '')
+        order.external_id = pending.external_id or d.get('external_id', '')
+        order.external_url = d.get('external_url', '')
+        order.save()
+        for item in d['items']:
+            OrderItem.objects.create(
+                order=order,
+                product_id=item['product_id'],
+                product_name=item['product_name'],
+                color=item.get('color', ''),
+                size=item.get('size', ''),
+                quantity=item['quantity'],
+                unit_price=item['unit_price'],
+            )
+        pending.delete()
+        return order
 
 
 def _mark_order_paid(order):
@@ -779,7 +800,7 @@ def order_success_view(request, num):
         request.session['cart'] = []
         request.session.modified = True
 
-    first_name = request.user.name.split()[0] if request.user.name else request.user.name
+    first_name = request.user.name.split()[0] if request.user.name else ''
     return render(request, 'order_success.html', {'order': order, 'first_name': first_name})
 
 
@@ -876,12 +897,24 @@ def admin_produto_form_view(request, pid=None):
 
         upload_folder = os.path.join(django_settings.BASE_DIR, 'static', 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
+        MAGIC_BYTES = {
+            b'\xff\xd8\xff': 'jpg',
+            b'\x89PNG': 'png',
+            b'RIFF': 'webp',
+        }
         for f in request.FILES.getlist('images'):
             if f and f.name:
                 if f.size > django_settings.MAX_UPLOAD_SIZE:
                     messages.error(request, f'Arquivo "{f.name}" muito grande. Máximo 16MB.')
                     continue
                 ext = f.name.rsplit('.', 1)[-1].lower()
+                # Valida magic bytes além da extensão
+                header = f.read(8)
+                f.seek(0)
+                is_valid_image = any(header.startswith(sig) for sig in MAGIC_BYTES)
+                if not is_valid_image or ext not in ('jpg', 'jpeg', 'png', 'webp'):
+                    messages.error(request, f'Arquivo "{f.name}" inválido. Use JPG, PNG ou WebP.')
+                    continue
                 if ext in ('jpg', 'jpeg', 'png', 'webp'):
                     fname = f"{uuid.uuid4().hex}.{ext}"
                     with open(os.path.join(upload_folder, fname), 'wb+') as dest:

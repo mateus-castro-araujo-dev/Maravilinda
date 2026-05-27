@@ -299,7 +299,14 @@ document.getElementById('checkout-form').addEventListener('submit', function(e) 
     document.getElementById('cep').focus();
     return false;
   }
-  if (currentPayment === 'pix') return; // deixa seguir normalmente
+  if (currentPayment === 'pix') {
+    // Desabilita botão para evitar duplo envio
+    const btn = document.getElementById('checkout-submit-btn');
+    if (btn.disabled) { e.preventDefault(); return false; }
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph ph-spinner"></i> Processando...';
+    return;
+  }
   // Para cartão, o SDK intercepta via onSubmit acima
 });
 </script>

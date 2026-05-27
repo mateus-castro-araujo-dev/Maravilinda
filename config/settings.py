@@ -6,12 +6,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY:
-    import sys
-    print("AVISO: SECRET_KEY não definida no .env — usando chave temporária insegura.", file=sys.stderr)
-    SECRET_KEY = 'django-insecure-temporaria-defina-no-env'
-
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError("SECRET_KEY não definida no .env. O servidor não pode iniciar em produção sem ela.")
+    SECRET_KEY = 'django-insecure-temporaria-apenas-para-dev'
 
 _allowed = os.environ.get('ALLOWED_HOSTS', 'lojamaravilinda.com.br,www.lojamaravilinda.com.br,localhost,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
@@ -110,6 +110,8 @@ LOGOUT_REDIRECT_URL = '/'
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = not DEBUG   # HTTPS only em produção
+CSRF_COOKIE_SECURE = not DEBUG      # HTTPS only em produção
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
